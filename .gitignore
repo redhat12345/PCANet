@@ -1,0 +1,6 @@
+log_data
+*.swp
+cifar
+.ipynb_checkpoints
+*.pyc
+.idea
