@@ -38,7 +38,7 @@ class PCANet:
 
         tf.summary.image('input', self.image_batch, max_outputs=10)
         tf.summary.image('conv1', self.conv1_viz, max_outputs=10)
-        tf.summary.image('filt1', self.filt1_viz, max_outputs=10)
+        tf.summary.image('filt1', self.filt1_viz, max_outputs=l1)
 
 
 def main():
@@ -57,7 +57,7 @@ def main():
         call(cmd)
 
     # setup the input data pipelines
-    train_image_batch, train_label_batch, test_image_batch, test_label_batch, info = load('mnist')
+    train_image_batch, train_label_batch, test_image_batch, test_label_batch, info = load('cifar')
 
     sess = tf.Session()
 
