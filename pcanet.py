@@ -62,10 +62,14 @@ def main():
     # define the model
     m = PCANet(train_image_batch, train_label_batch, info)
 
+    writer.add_graph(sess.graph)
+
     # run it
     sess.run(init)
     _, summary = sess.run([m.conv1, merged_summary])
     writer.add_summary(summary, 0)
+
+    writer.close()
 
 
 if __name__ == '__main__':
