@@ -22,8 +22,9 @@ class PCANet:
         l2 = 10
         with tf.name_scope("extract_patches1"):
             self.patches1 = tf.extract_image_patches(image_batch, [1, k1, k2, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding='SAME', name='patches')
-            self.patches1 = tf.reshape(self.patches1, [-1,  k1 * k2, info.N_CHANNELS], name='patches_shaped')
-            # self.patches1 = tf.transpose(self.patches1, [0, 2, 1])
+            # self.patches1 = tf.reshape(self.patches1, [-1,  k1 * k2, info.N_CHANNELS], name='patches_shaped')
+            self.patches1 = tf.reshape(self.patches1, [-1, info.N_CHANNELS,  k1 * k2], name='patches_shaped')
+            self.patches1 = tf.transpose(self.patches1, [0, 2, 1])
             self.zero_mean_patches1 = self.patches1 - tf.reduce_mean(self.patches1, axis=1, keep_dims=True, name='patch_means')
             x1 = tf.transpose(self.zero_mean_patches1, [2, 1, 0])
             x1_trans = tf.transpose(self.zero_mean_patches1, [2, 0, 1])
