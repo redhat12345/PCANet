@@ -18,7 +18,7 @@ class PCANet:
 
         k1 = 5
         k2 = 5
-        l1 = 10
+        l1 = 6
         self.patches = tf.extract_image_patches(image_batch, ksizes=[1, k1, k2, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding='SAME', name='patches')
         self.patches = tf.reshape(self.patches, [-1, k1 * k2, info.N_CHANNELS], name='patches_shaped')
         self.zero_mean_patches = self.patches - tf.reduce_mean(self.patches, axis=1, keep_dims=True, name='patch_means')
@@ -52,7 +52,7 @@ def main():
 
     # Open text editor to write description of the run and commit it
     if '--temp' not in sys.argv:
-        cmd = ['git', 'commit', __file__]
+        cmd = ['git', 'commit', '*.py']
         os.environ['TF_LOG_DIR'] = log_path
         call(cmd)
 
