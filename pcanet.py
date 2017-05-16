@@ -28,9 +28,9 @@ class PCANet:
         self.x_eig_vals, self.x_eig = tf.self_adjoint_eig(self.patches_covariance, name='x_eig')
         self.top_x_eig = self.x_eig[:, :, 0:l1]
         self.top_x_eig = tf.transpose(tf.reshape(self.top_x_eig, [info.N_CHANNELS, k1, k2, l1]), [2, 1, 0, 3])
-
         self.conv1 = tf.nn.conv2d(image_batch, self.top_x_eig, strides=[1, 1, 1, 1], padding='SAME')
-        self.conv1_viz = tf.reshape(tf.transpose(self.conv1, [0, 3, 1, 2]), [-1, info.IMAGE_W, info.IMAGE_H, info.N_CHANNELS])
+
+        self.conv1_viz = tf.reshape(tf.transpose(self.conv1, [0, 3, 1, 2]), [-1, info.IMAGE_W, info.IMAGE_H, 1])
         self.filt1_viz = tf.transpose(self.top_x_eig, [3, 0, 1, 2])
         self.patches_viz = tf.reshape(self.patches, [-1, 5, 5, info.N_CHANNELS])
         self.mean_patches_viz = tf.reshape(self.zero_mean_patches, [-1, 5, 5, info.N_CHANNELS])
