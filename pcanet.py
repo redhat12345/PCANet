@@ -21,7 +21,8 @@ class PCANet:
         l1 = 10
         self.patches = tf.extract_image_patches(image_batch, ksizes=[1, k1, k2, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding='SAME', name='patches')
         self.patches = tf.reshape(self.patches, [-1, k1 * k2, info.N_CHANNELS], name='patches_shaped')
-        self.zero_mean_patches = self.patches - tf.reduce_mean(self.patches, axis=2, keep_dims=True, name='patch_means')
+        print(self.patches.get_shape())
+        self.zero_mean_patches = self.patches - tf.reduce_mean(self.patches, axis=1, keep_dims=True, name='patch_means')
         x = tf.transpose(self.zero_mean_patches, [2, 1, 0])
         x_trans = tf.transpose(self.zero_mean_patches, [2, 0, 1])
         self.patches_covariance = tf.matmul(x, x_trans, name='patch_covariance')
