@@ -57,7 +57,7 @@ def main():
         call(cmd)
 
     # setup the input data pipelines
-    train_image_batch, train_label_batch, test_image_batch, test_label_batch, info = load('cifar')
+    train_image_batch, train_label_batch, test_image_batch, test_label_batch, info = load('cifar10')
 
     sess = tf.Session()
 
