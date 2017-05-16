@@ -52,7 +52,7 @@ def load(name):
 
     info = datasets[name]
 
-    batch_size = 128
+    batch_size = 10000
 
     with tf.name_scope('input'):
         filename_queue = tf.train.string_input_producer([info.TRAIN_RECORD_PATH])
