@@ -37,8 +37,6 @@ class PCANet:
         tf.summary.image('input', self.image_batch, max_outputs=10)
         tf.summary.image('conv1', self.conv1_viz, max_outputs=10)
         tf.summary.image('filt1', self.filt1_viz, max_outputs=10)
-        tf.summary.image('patches', self.patches_viz[200:], max_outputs=10)
-        tf.summary.image('mean_patches', self.mean_patches_viz[200:], max_outputs=10)
 
 
 def main():
