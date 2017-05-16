@@ -4,6 +4,7 @@
 # https://arxiv.org/pdf/1404.3606.pdf
 
 import tensorflow as tf
+import numpy as np
 from datetime import datetime
 import os
 import sys
@@ -27,13 +28,13 @@ class PCANet:
         k2 = 5
         l1 = 10
         self.patches = tf.extract_image_patches(image_batch, ksizes=[1, k1, k2, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding='SAME', name='x')
-        self.patches = tf.reshape(self.patches, [-1, IMAGE_SIZE, IMAGE_SIZE, k1 * k2, N_CHANNELS])
-        print(self.patches.get_shape())
-        self.X = self.patches - tf.reduce_mean(self.patches, axis=3, keep_dims=True)
-        # self.X_cov = tf.matmul(tf.expand_dims(self.X, axis=4), tf.expand_dims(self.X, axis=3), name='x_covariance')
-        # _, x_eig = tf.self_adjoint_eig(self.X_cov, name='x_eig')
-        # self.top_x_eig = tf.reshape(x_eig[0:l1], [-1, IMAGE_SIZE, IMAGE_SIZE, k1, k2, 3])
-        # print(self.top_x_eig.get_shape())
+        self.patches = tf.reshape(self.patches, [-1, k1 * k2, N_CHANNELS])
+        self.zero_mean_patches = self.patches - tf.reduce_mean(self.patches, axis=2, keep_dims=True)
+        x = tf.transpose(self.zero_mean_patches, [2, 1, 0])
+        x_trans = tf.transpose(self.zero_mean_patches, [2, 0, 1])
+        self.patches_covariance = tf.matmul(x, x_trans, name='patch_covariance')
+        _, self.x_eig = tf.self_adjoint_eig(self.patches_covariance, name='x_eig')
+        self.top_x_eig = tf.transpose(tf.reshape(self.x_eig[:, 0:l1], [3, k1, k2, l1]), [3, 2, 1, 0])
 
 
 def generate_image_and_label_batch(images, labels, min_queue_examples, batch_size):
@@ -111,18 +112,13 @@ def main():
     # define the model
     m = PCANet(train_image_batch, train_label_batch, global_step)
 
-    imgs, x, l = sess.run([m.image_batch, m.patches, m.label_batch])
-    first_patch = x[0, 0, 0]
-    patch = first_patch.reshape((5, 5, 3))
-    img = imgs[0].reshape((IMAGE_SIZE, IMAGE_SIZE, N_CHANNELS))
-    print(l[0])
+    e = sess.run(m.top_x_eig)
+
     import matplotlib.pyplot as plt
     plt.figure()
-    plt.imshow(patch, interpolation='none')
-    plt.figure()
-    plt.imshow(img, interpolation='none')
+    plt.imshow(e[0], interpolation='none')
     plt.show()
-
+#
 
 if __name__ == '__main__':
     main()
