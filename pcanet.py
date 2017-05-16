@@ -38,7 +38,7 @@ class PCANet:
             self.top_x_eig1 = tf.reverse(self.x_eig1, axis=[2])[:, :, 0:l1]
             self.top_x_eig1 = tf.transpose(tf.reshape(self.top_x_eig1, [info.N_CHANNELS, k1, k2, l1]), [2, 1, 0, 3])
 
-            self.filt1_viz = tf.transpose(self.top_x_eig1, [3, 0, 1, 2])
+            self.filt1_viz = tf.transpose(self.top_x_eig1, [3, 0, 2, 1])
             tf.summary.image('filt1', self.filt1_viz, max_outputs=l1)
 
         with tf.name_scope("convolution1"):
@@ -60,7 +60,7 @@ class PCANet:
             self.top_x_eig2 = tf.reverse(self.x_eig2, axis=[2])[:, :, 0:l2]
             self.top_x_eig2 = tf.transpose(tf.reshape(self.top_x_eig2, [1, k1, k2, l2]), [2, 1, 0, 3])
 
-            self.filt2_viz = tf.transpose(self.top_x_eig2, [3, 0, 1, 2])
+            self.filt2_viz = tf.transpose(self.top_x_eig2, [3, 0, 2, 1])
             tf.summary.image('filt2', self.filt2_viz, max_outputs=l2)
 
         with tf.name_scope("convolution2"):
