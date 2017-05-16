@@ -19,7 +19,6 @@ class DatasetInfo:
 class Cifar10(DatasetInfo):
     def __init__(self):
         super().__init__()
-        # constants describing the CIFAR-10 data set.
         self.name = "CIFAR10"
         self.N_CHANNELS = 3
         self.IMAGE_H = 32
@@ -29,9 +28,22 @@ class Cifar10(DatasetInfo):
         self.TRAIN_RECORD_PATH = 'cifar/train_cifar10.tfrecords'
 
 
+class MNIST(DatasetInfo):
+    def __init__(self):
+        super().__init__()
+        self.name = "MNIST"
+        self.N_CHANNELS = 1
+        self.IMAGE_H = 28
+        self.IMAGE_W = 28
+        self.NUM_CLASSES = 10
+        self.TEST_RECORD_PATH = 'mnist/test_mnist.tfrecords'
+        self.TRAIN_RECORD_PATH = 'mnist/train_mnist.tfrecords'
+
+
 def load(name):
     datasets = {
         'cifar10': Cifar10(),
+        'mnist': MNIST(),
     }
 
     if name not in datasets:

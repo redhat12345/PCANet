@@ -5,7 +5,7 @@
 
 import tensorflow as tf
 from datetime import datetime
-from dataset_utils import load, Cifar10
+from dataset_utils import load
 import os
 import sys
 from subprocess import call

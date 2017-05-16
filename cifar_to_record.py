@@ -41,15 +41,14 @@ def unpickle_and_write(filename, writer):
 
 def main():
     data_dir = 'cifar'
+    info = Cifar10()
 
-    train_record_filename = os.path.join(data_dir, 'train_cifar10.tfrecords')
-    train_writer = tf.python_io.TFRecordWriter(train_record_filename)
+    train_writer = tf.python_io.TFRecordWriter(info.TRAIN_RECORD_PATH)
     for train_filename in [os.path.join(data_dir, 'data_batch_%i' % i) for i in range(1, 6)]:
         unpickle_and_write(train_filename, train_writer)
     train_writer.close()
 
-    test_record_filename = os.path.join(data_dir, 'test_cifar10.tfrecords')
-    test_writer = tf.python_io.TFRecordWriter(test_record_filename)
+    test_writer = tf.python_io.TFRecordWriter(info.TEST_RECORD_PATH)
     unpickle_and_write(os.path.join(data_dir, 'test_batch'), test_writer)
     test_writer.close()
 
