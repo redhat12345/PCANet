@@ -1,9 +1,7 @@
 #!/usr/bin/python3.5
 
-import tensorflow as tf
 import numpy as np
-import os
-import pickle
+import tensorflow as tf
 from dataset_utils import MNIST
 
 
@@ -24,36 +22,34 @@ def load_and_write(images_filename, labels_filename, writer):
     images = open(images_filename, 'rb')
     labels = open(labels_filename, 'rb')
 
-    images_header = images.read(4)
-    labels_header = labels.read(4)
+    # read and ignore header. we know the files are unsigned 8bit ints
+    images.seek(16)
+    labels.seek(8)
 
-    print(images_header, labels_header)
-    # dataset = pickle.load(fo, encoding='bytes')
-    # images = dataset[bytes('data', encoding='utf-8')]
-    # labels = dataset[bytes('labels', encoding='utf-8')]
-    # for image, label in zip(images, labels):
-    #     image = image.reshape(32, 32, 1)
-    #     image_bytes = image.tobytes()
-    #     example = tf.train.Example(features=tf.train.Features(feature={
-    #         'height': _int64_feature(info.IMAGE_H),
-    #         'width': _int64_feature(info.IMAGE_W),
-    #         'depth': _int64_feature(info.N_CHANNELS),
-    #         'image': _bytes_feature(image_bytes),
-    #         'label': _float_feature(label),
-    #     }))
-    #     writer.write(example.SerializeToString())
+    np_images = np.fromfile(images, dtype=np.uint8).reshape((-1, info.img_dim()))
+    np_labels = np.fromfile(labels, dtype=np.uint8)
+
+    for img, label in zip(np_images, np_labels):
+        image_bytes = img.tobytes()
+        example = tf.train.Example(features=tf.train.Features(feature={
+            'height': _int64_feature(info.IMAGE_H),
+            'width': _int64_feature(info.IMAGE_W),
+            'depth': _int64_feature(info.N_CHANNELS),
+            'image': _bytes_feature(image_bytes),
+            'label': _float_feature(label),
+        }))
+        writer.write(example.SerializeToString())
 
 
 def main():
-    data_dir = 'mnist'
     info = MNIST()
 
     train_writer = tf.python_io.TFRecordWriter(info.TRAIN_RECORD_PATH)
-    load_and_write('train_images', 'train_labels', train_writer)
+    load_and_write('mnist/train_images', 'mnist/train_labels', train_writer)
     train_writer.close()
 
     test_writer = tf.python_io.TFRecordWriter(info.TEST_RECORD_PATH)
-    load_and_write('train_images', 'train_labels', train_writer)
+    load_and_write('mnist/test_images', 'mnist/test_labels', test_writer)
     test_writer.close()
 
 

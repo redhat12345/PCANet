@@ -4,6 +4,7 @@
 # https://arxiv.org/pdf/1404.3606.pdf
 
 import tensorflow as tf
+import numpy as np
 from datetime import datetime
 from dataset_utils import load
 import os
@@ -26,7 +27,7 @@ class PCANet:
         x_trans = tf.transpose(self.zero_mean_patches, [2, 0, 1])
         self.patches_covariance = tf.matmul(x, x_trans, name='patch_covariance')
         _, self.x_eig = tf.self_adjoint_eig(self.patches_covariance, name='x_eig')
-        self.top_x_eig = tf.transpose(tf.reshape(self.x_eig[:, 0:l1], [3, k1, k2, l1]), [3, 2, 1, 0])
+        self.top_x_eig = tf.transpose(tf.reshape(self.x_eig[:, 0:l1], [info.N_CHANNELS, k1, k2, l1]), [3, 2, 1, 0])
 
 
 def main():
@@ -45,7 +46,7 @@ def main():
         call(cmd)
 
     # setup the input data pipelines
-    train_image_batch, train_label_batch, test_image_batch, test_label_batch, info = load('cifar10')
+    train_image_batch, train_label_batch, test_image_batch, test_label_batch, info = load('mnist')
 
     sess = tf.Session()
 
@@ -57,6 +58,7 @@ def main():
     e = sess.run(m.image_batch)
 
     import matplotlib.pyplot as plt
+    e = np.squeeze(e)
     plt.figure()
     plt.imshow(e[0], interpolation='none')
     plt.show()
