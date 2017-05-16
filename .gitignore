@@ -1,6 +1,7 @@
 log_data
-*.swp
 cifar
+mnist
+*.swp
 .ipynb_checkpoints
 *.pyc
 .idea
