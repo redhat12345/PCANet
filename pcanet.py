@@ -55,9 +55,6 @@ class PCANet:
             x2_trans = tf.transpose(self.zero_mean_patches2, [2, 0, 1])
             self.patches_covariance2 = tf.matmul(x2, x2_trans, name='patch_covariance')
 
-            self.p2_viz = tf.reshape(self.patches2, [-1, k1, k2, 1])
-            tf.summary.image('p2', self.p2_viz, max_outputs=100)
-
         with tf.name_scope("eignvalue_decomposition"):
             self.x_eig_vals2, self.x_eig2 = tf.self_adjoint_eig(self.patches_covariance2, name='x_eig')
             self.top_x_eig2 = self.x_eig2[:, :, 0:l2]
@@ -67,7 +64,6 @@ class PCANet:
             tf.summary.image('filt2', self.filt2_viz, max_outputs=l2)
 
         with tf.name_scope("convolution"):
-            print(self.top_x_eig2.get_shape())
             self.conv2 = tf.nn.conv2d(self.conv1, self.top_x_eig2, strides=[1, 1, 1, 1], padding='SAME')
 
             self.conv2_viz = tf.reshape(tf.transpose(self.conv2, [0, 3, 1, 2]), [-1, info.IMAGE_W, info.IMAGE_H, 1])
