@@ -18,8 +18,8 @@ class PCANet:
 
         k1 = 5
         k2 = 5
-        l1 = 20
-        l2 = 10
+        l1 = 8
+        l2 = 8
         with tf.name_scope("extract_patches1"):
             self.patches1 = tf.extract_image_patches(image_batch, [1, k1, k2, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding='SAME', name='patches')
             self.patches1 = tf.reshape(self.patches1, [-1,  k1 * k2, info.N_CHANNELS], name='patches_shaped')
@@ -102,8 +102,7 @@ def main():
     writer.add_graph(sess.graph)
     merged_summary = tf.summary.merge_all()
 
-    _, summary, e = sess.run([m.conv1, merged_summary, m.x_eig_vals2])
-    print(e)
+    _, summary = sess.run([m.conv1, merged_summary])
     writer.add_summary(summary, 0)
 
     writer.close()
