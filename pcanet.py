@@ -27,7 +27,12 @@ class PCANet:
         x_trans = tf.transpose(self.zero_mean_patches, [2, 0, 1])
         self.patches_covariance = tf.matmul(x, x_trans, name='patch_covariance')
         _, self.x_eig = tf.self_adjoint_eig(self.patches_covariance, name='x_eig')
-        self.top_x_eig = tf.transpose(tf.reshape(self.x_eig[:, 0:l1], [info.N_CHANNELS, k1, k2, l1]), [3, 2, 1, 0])
+        self.top_x_eig = tf.transpose(tf.reshape(self.x_eig[:, 0:l1], [info.N_CHANNELS, k1, k2, l1]), [2, 1, 0, 3])
+
+        self.conv1 = tf.nn.conv2d(image_batch, self.top_x_eig, strides=[1, 1, 1, 1], padding='SAME')
+
+        tf.summary.image('input', self.image_batch, max_outputs=10)
+        tf.summary.image('conv1', self.conv1, max_outputs=10)
 
 
 def main():
@@ -51,17 +56,16 @@ def main():
     sess = tf.Session()
 
     tf.train.start_queue_runners(sess=sess)
+    merged_summary = tf.summary.merge_all()
+    init = tf.global_variables_initializer()
 
     # define the model
     m = PCANet(train_image_batch, train_label_batch, info)
 
-    e = sess.run(m.image_batch)
-
-    import matplotlib.pyplot as plt
-    e = np.squeeze(e)
-    plt.figure()
-    plt.imshow(e[0], interpolation='none')
-    plt.show()
+    # run it
+    sess.run(init)
+    _, summary = sess.run([m.conv1, merged_summary])
+    writer.add_summary(summary, 0)
 
 
 if __name__ == '__main__':
