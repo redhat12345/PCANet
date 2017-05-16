@@ -4,7 +4,6 @@
 # https://arxiv.org/pdf/1404.3606.pdf
 
 import tensorflow as tf
-import numpy as np
 from datetime import datetime
 from dataset_utils import load
 import os
@@ -20,9 +19,9 @@ class PCANet:
         k1 = 5
         k2 = 5
         l1 = 10
-        self.patches = tf.extract_image_patches(image_batch, ksizes=[1, k1, k2, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding='SAME', name='x')
-        self.patches = tf.reshape(self.patches, [-1, k1 * k2, info.N_CHANNELS])
-        self.zero_mean_patches = self.patches - tf.reduce_mean(self.patches, axis=2, keep_dims=True)
+        self.patches = tf.extract_image_patches(image_batch, ksizes=[1, k1, k2, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding='SAME', name='patches')
+        self.patches = tf.reshape(self.patches, [-1, k1 * k2, info.N_CHANNELS], name='patches_shaped')
+        self.zero_mean_patches = self.patches - tf.reduce_mean(self.patches, axis=2, keep_dims=True, name='patch_means')
         x = tf.transpose(self.zero_mean_patches, [2, 1, 0])
         x_trans = tf.transpose(self.zero_mean_patches, [2, 0, 1])
         self.patches_covariance = tf.matmul(x, x_trans, name='patch_covariance')
@@ -30,9 +29,16 @@ class PCANet:
         self.top_x_eig = tf.transpose(tf.reshape(self.x_eig[:, 0:l1], [info.N_CHANNELS, k1, k2, l1]), [2, 1, 0, 3])
 
         self.conv1 = tf.nn.conv2d(image_batch, self.top_x_eig, strides=[1, 1, 1, 1], padding='SAME')
+        self.conv1_viz = tf.reshape(tf.transpose(self.conv1, [0, 3, 1, 2]), [-1, info.IMAGE_W, info.IMAGE_H, info.N_CHANNELS])
+        self.filt1_viz = tf.transpose(self.top_x_eig, [3, 0, 1, 2])
+        self.patches_viz = tf.reshape(self.patches, [-1, 5, 5, info.N_CHANNELS])
+        self.mean_patches_viz = tf.reshape(self.zero_mean_patches, [-1, 5, 5, info.N_CHANNELS])
 
         tf.summary.image('input', self.image_batch, max_outputs=10)
-        tf.summary.image('conv1', self.conv1, max_outputs=10)
+        tf.summary.image('conv1', self.conv1_viz, max_outputs=10)
+        tf.summary.image('filt1', self.filt1_viz, max_outputs=10)
+        tf.summary.image('patches', self.patches_viz[200:], max_outputs=10)
+        tf.summary.image('mean_patches', self.mean_patches_viz[200:], max_outputs=10)
 
 
 def main():
@@ -56,18 +62,18 @@ def main():
     sess = tf.Session()
 
     tf.train.start_queue_runners(sess=sess)
-    merged_summary = tf.summary.merge_all()
     init = tf.global_variables_initializer()
 
     # define the model
     m = PCANet(train_image_batch, train_label_batch, info)
 
-    writer.add_graph(sess.graph)
 
     # run it
     sess.run(init)
+    writer.add_graph(sess.graph)
+    merged_summary = tf.summary.merge_all()
     _, summary = sess.run([m.conv1, merged_summary])
-    writer.add_summary(summary, 0)
+    writer.add_summary(summary)
 
     writer.close()
 
