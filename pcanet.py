@@ -19,25 +19,28 @@ class PCANet:
         k1 = 5
         k2 = 5
         l1 = 25
-        self.patches = tf.extract_image_patches(image_batch, ksizes=[1, k1, k2, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding='SAME', name='patches')
-        self.patches = tf.reshape(self.patches, [-1, k1 * k2, info.N_CHANNELS], name='patches_shaped')
-        self.zero_mean_patches = self.patches - tf.reduce_mean(self.patches, axis=1, keep_dims=True, name='patch_means')
-        x = tf.transpose(self.zero_mean_patches, [2, 1, 0])
-        x_trans = tf.transpose(self.zero_mean_patches, [2, 0, 1])
-        self.patches_covariance = tf.matmul(x, x_trans, name='patch_covariance')
-        self.x_eig_vals, self.x_eig = tf.self_adjoint_eig(self.patches_covariance, name='x_eig')
-        self.top_x_eig = self.x_eig[:, :, 0:l1]
-        self.top_x_eig = tf.transpose(tf.reshape(self.top_x_eig, [info.N_CHANNELS, k1, k2, l1]), [2, 1, 0, 3])
-        self.conv1 = tf.nn.conv2d(image_batch, self.top_x_eig, strides=[1, 1, 1, 1], padding='SAME')
+        with tf.name_scope("extract_patches"):
+            self.patches = tf.extract_image_patches(image_batch, ksizes=[1, k1, k2, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding='SAME', name='patches')
+            self.patches = tf.reshape(self.patches, [-1, k1 * k2, info.N_CHANNELS], name='patches_shaped')
+            self.zero_mean_patches = self.patches - tf.reduce_mean(self.patches, axis=1, keep_dims=True, name='patch_means')
+            x = tf.transpose(self.zero_mean_patches, [2, 1, 0])
+            x_trans = tf.transpose(self.zero_mean_patches, [2, 0, 1])
+            self.patches_covariance = tf.matmul(x, x_trans, name='patch_covariance')
+        with tf.name_scope("eignvalue_decomposition"):
+            self.x_eig_vals, self.x_eig = tf.self_adjoint_eig(self.patches_covariance, name='x_eig')
+            self.top_x_eig = self.x_eig[:, :, 0:l1]
+            self.top_x_eig = tf.transpose(tf.reshape(self.top_x_eig, [info.N_CHANNELS, k1, k2, l1]), [2, 1, 0, 3])
 
-        self.conv1_viz = tf.reshape(tf.transpose(self.conv1, [0, 3, 1, 2]), [-1, info.IMAGE_W, info.IMAGE_H, 1])
-        self.filt1_viz = tf.transpose(self.top_x_eig, [3, 0, 1, 2])
-        self.patches_viz = tf.reshape(self.patches, [-1, 5, 5, info.N_CHANNELS])
-        self.mean_patches_viz = tf.reshape(self.zero_mean_patches, [-1, 5, 5, info.N_CHANNELS])
+        with tf.name_scope("convolution"):
+            self.conv1 = tf.nn.conv2d(image_batch, self.top_x_eig, strides=[1, 1, 1, 1], padding='SAME')
 
-        tf.summary.image('input', self.image_batch, max_outputs=10)
-        tf.summary.image('conv1', self.conv1_viz, max_outputs=10)
-        tf.summary.image('filt1', self.filt1_viz, max_outputs=l1)
+        with tf.name_scope("visualizations"):
+            self.conv1_viz = tf.reshape(tf.transpose(self.conv1, [0, 3, 1, 2]), [-1, info.IMAGE_W, info.IMAGE_H, 1])
+            self.filt1_viz = tf.transpose(self.top_x_eig, [3, 0, 1, 2])
+
+            tf.summary.image('input', self.image_batch, max_outputs=10)
+            tf.summary.image('conv1', self.conv1_viz, max_outputs=10)
+            tf.summary.image('filt1', self.filt1_viz, max_outputs=l1)
 
 
 def main():
