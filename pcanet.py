@@ -102,7 +102,8 @@ def main():
     writer.add_graph(sess.graph)
     merged_summary = tf.summary.merge_all()
 
-    _, summary = sess.run([m.conv1, merged_summary])
+    _, summary, e = sess.run([m.conv1, merged_summary, m.x_eig_vals2])
+    print(e)
     writer.add_summary(summary, 0)
 
     writer.close()
