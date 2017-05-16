@@ -5,7 +5,7 @@
 
 import tensorflow as tf
 from datetime import datetime
-from dataset_loader import load_cifar10, DatasetInfo
+from dataset_utils import load, Cifar10
 import os
 import sys
 from subprocess import call
@@ -45,7 +45,7 @@ def main():
         call(cmd)
 
     # setup the input data pipelines
-    train_image_batch, train_label_batch, test_image_batch, test_label_batch, info = load_cifar10()
+    train_image_batch, train_label_batch, test_image_batch, test_label_batch, info = load('cifar10')
 
     sess = tf.Session()
 
@@ -54,7 +54,7 @@ def main():
     # define the model
     m = PCANet(train_image_batch, train_label_batch, info)
 
-    e = sess.run(m.top_x_eig)
+    e = sess.run(m.image_batch)
 
     import matplotlib.pyplot as plt
     plt.figure()
