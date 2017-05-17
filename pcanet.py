@@ -24,7 +24,7 @@ class PCANet:
         l2 = 8
         with tf.name_scope("extract_patches1"):
             self.patches1 = tf.extract_image_patches(image_batch, [1, k1, k2, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding='SAME', name='patches')
-            self.patches1 = tf.reshape(self.patches1, [-1,  k1 * k2, info.N_CHANNELS], name='patches_shaped')
+            self.patches1 = tf.reshape(self.patches1, [-1, k1 * k2, info.N_CHANNELS], name='patches_shaped')
             # TODO: figure out how to unvectorize for multi-channel images
             # self.patches1 = tf.reshape(self.patches1, [-1, info.N_CHANNELS,  k1 * k2], name='patches_shaped')
             # self.patches1 = tf.transpose(self.patches1, [0, 2, 1])
@@ -43,12 +43,13 @@ class PCANet:
 
         with tf.name_scope("convolution1"):
             self.conv1 = tf.nn.conv2d(image_batch, self.top_x_eig1, strides=[1, 1, 1, 1], padding='SAME')
-            self.conv1 = tf.reshape(tf.transpose(self.conv1, [0, 3, 1, 2]), [-1, info.IMAGE_W, info.IMAGE_H, 1])
+            self.conv1 = tf.transpose(self.conv1, [0, 3, 1, 2])
+            self.conv1_batch = tf.reshape(self.conv1, [-1, info.IMAGE_W, info.IMAGE_H, 1])
 
-            tf.summary.image('conv1', self.conv1, max_outputs=l1)
+            tf.summary.image('conv1', self.conv1_batch, max_outputs=l1)
 
         with tf.name_scope("extract_patches2"):
-            self.patches2 = tf.extract_image_patches(self.conv1, [1, k1, k2, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding='SAME', name='patches')
+            self.patches2 = tf.extract_image_patches(self.conv1_batch, [1, k1, k2, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding='SAME', name='patches')
             self.patches2 = tf.expand_dims(tf.reshape(self.patches2, [-1, k1 * k2], name='patches_shaped'), axis=2)
             self.zero_mean_patches2 = self.patches2 - tf.reduce_mean(self.patches2, axis=1, keep_dims=True, name='patch_means')
             x2 = tf.transpose(self.zero_mean_patches2, [2, 1, 0])
@@ -64,14 +65,22 @@ class PCANet:
             tf.summary.image('filt2', self.filt2_viz, max_outputs=l2)
 
         with tf.name_scope("convolution2"):
-            self.conv2 = tf.nn.conv2d(self.conv1, self.top_x_eig2, strides=[1, 1, 1, 1], padding='SAME')
-
-            self.conv2 = tf.reshape(tf.transpose(self.conv2, [0, 3, 1, 2]), [-1, info.IMAGE_W, info.IMAGE_H, 1])
-            tf.summary.image('conv2', self.conv2, max_outputs=l1*l2+1)
+            self.conv2 = tf.nn.conv2d(self.conv1_batch, self.top_x_eig2, strides=[1, 1, 1, 1], padding='SAME')
+            self.conv2 = tf.transpose(self.conv2, [0, 3, 1, 2])
+            self.conv2_batch = tf.reshape(self.conv2, [-1, info.IMAGE_W, info.IMAGE_H, 1])
+            tf.summary.image('conv2', self.conv2_batch, max_outputs=l2)
 
         with tf.name_scope("binary_quantize"):
             self.binary_quantize = tf.cast(self.conv2 > 0, tf.float32)
-            tf.summary.image('binary', self.binary_quantize, max_outputs=l1*l2+1)
+            self.powers_of_two = tf.expand_dims(tf.constant([2 ** n for n in range(0, l2)], dtype=tf.float32), axis=1)
+            self.powers_of_two = tf.tile(self.powers_of_two, multiples=[info.batch_size * l1 * info.IMAGE_W * info.IMAGE_H, 1]),
+            self.powers_of_two = tf.reshape(self.powers_of_two, [info.batch_size * l1, info.IMAGE_W, info.IMAGE_H, 8, 1])
+            self.binary_encoded = tf.matmul(tf.expand_dims(tf.transpose(self.binary_quantize, [0, 2, 3, 1]), axis=3), self.powers_of_two, name='binary_encoded')
+
+            self.binary_quantize_viz = tf.reshape(tf.expand_dims(self.binary_quantize, axis=4), [-1, info.IMAGE_W, info.IMAGE_H, 1])
+            self.binary_encoded_viz = tf.reshape(tf.expand_dims(self.binary_encoded, axis=4), [-1, info.IMAGE_W, info.IMAGE_H, 1])
+            tf.summary.image('quantized', self.binary_quantize_viz, max_outputs=l2)
+            tf.summary.image('encoded', self.binary_encoded_viz, max_outputs=l2)
 
 
 def main():
@@ -112,7 +121,7 @@ def main():
     writer.add_graph(sess.graph)
     merged_summary = tf.summary.merge_all()
 
-    _, summary = sess.run([m.conv1, merged_summary])
+    _, summary, p = sess.run([m.conv2_batch, merged_summary, m.powers_of_two])
     writer.add_summary(summary, 0)
 
     writer.close()

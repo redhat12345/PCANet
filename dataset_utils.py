@@ -72,6 +72,7 @@ def load(name):
                                                                     capacity=1000 + 3 * batch_size,
                                                                     min_after_dequeue=1000)
 
+    info.batch_size = batch_size
     return train_image_batch, train_label_batch, test_image_batch, test_label_batch, info
 
 
