@@ -85,7 +85,13 @@ def main():
 
     # Open text editor to write description of the run and commit it
     if '--temp' not in sys.argv:
-        cmd = ['git', 'commit', '*.py']
+        if '-m' in sys.argv:
+            m_i = sys.argv.index('-m')
+            msg = sys.argv[m_i + 1]
+            cmd = ['git', 'commit', '*.py', '-m', msg]
+        else:
+            cmd = ['git', 'commit', '*.py']
+
         os.environ['TF_LOG_DIR'] = log_path
         call(cmd)
 
