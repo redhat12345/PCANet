@@ -131,7 +131,7 @@ def main():
     for i in range(100):
         _, summary, l = sess.run([m.train, merged_summary, m.loss])
         print(l, i)
-        writer.add_summary(summary, 0)
+        writer.add_summary(summary, i)
 
     writer.close()
 
