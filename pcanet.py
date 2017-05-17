@@ -66,8 +66,12 @@ class PCANet:
         with tf.name_scope("convolution2"):
             self.conv2 = tf.nn.conv2d(self.conv1, self.top_x_eig2, strides=[1, 1, 1, 1], padding='SAME')
 
-            self.conv2_viz = tf.reshape(tf.transpose(self.conv2, [0, 3, 1, 2]), [-1, info.IMAGE_W, info.IMAGE_H, 1])
-            tf.summary.image('conv2', self.conv2_viz, max_outputs=10)
+            self.conv2 = tf.reshape(tf.transpose(self.conv2, [0, 3, 1, 2]), [-1, info.IMAGE_W, info.IMAGE_H, 1])
+            tf.summary.image('conv2', self.conv2, max_outputs=10)
+
+        with tf.name_scope("binary_quantize"):
+            self.binary_quantize = tf.cast(self.conv2 > 0, tf.float32)
+            tf.summary.image('binary', self.binary_quantize, max_outputs=10)
 
 
 def main():
