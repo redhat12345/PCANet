@@ -128,7 +128,7 @@ def main():
     writer.add_graph(sess.graph)
     merged_summary = tf.summary.merge_all()
 
-    for i in range(10):
+    for i in range(100):
         _, summary, l = sess.run([m.train, merged_summary, m.loss])
         print(l, i)
         writer.add_summary(summary, 0)
