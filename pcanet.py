@@ -72,13 +72,10 @@ class PCANet:
 
         with tf.name_scope("binary_quantize"):
             self.binary_quantize = tf.cast(self.conv2 > 0, tf.float32)
-            self.powers_of_two = tf.expand_dims(tf.constant([2 ** n for n in range(0, l2)], dtype=tf.float32), axis=1)
-            self.powers_of_two = tf.tile(self.powers_of_two, multiples=[info.batch_size * l1 * info.IMAGE_W * info.IMAGE_H, 1]),
-            self.powers_of_two = tf.reshape(self.powers_of_two, [info.batch_size * l1, info.IMAGE_W, info.IMAGE_H, 8, 1])
-            self.binary_encoded = tf.matmul(tf.expand_dims(tf.transpose(self.binary_quantize, [0, 2, 3, 1]), axis=3), self.powers_of_two, name='binary_encoded')
-
+            self.powers_of_two = tf.constant([2 ** n for n in range(0, l2)], dtype=tf.float32)
+            self.binary_encoded = tf.reduce_sum(tf.transpose(self.binary_quantize, [0, 2, 3, 1]) @ self.powers_of_two, axis=3)
             self.binary_quantize_viz = tf.reshape(tf.expand_dims(self.binary_quantize, axis=4), [-1, info.IMAGE_W, info.IMAGE_H, 1])
-            self.binary_encoded_viz = tf.reshape(tf.expand_dims(self.binary_encoded, axis=4), [-1, info.IMAGE_W, info.IMAGE_H, 1])
+            self.binary_encoded_viz = tf.expand_dims(self.binary_encoded, axis=3)
             tf.summary.image('quantized', self.binary_quantize_viz, max_outputs=l2)
             tf.summary.image('encoded', self.binary_encoded_viz, max_outputs=l2)
 
