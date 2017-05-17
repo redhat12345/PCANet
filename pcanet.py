@@ -77,14 +77,12 @@ class PCANet:
             print(self.binary_encoded.get_shape())
 
             self.binary_quantize_viz = tf.reshape(tf.expand_dims(self.binary_quantize, axis=4), [-1, info.IMAGE_W, info.IMAGE_H, 1])
-            self.binary_encoded_viz_1 = tf.expand_dims(self.binary_encoded[:, 1, :, :], axis=3)
-            self.binary_encoded_viz_2 = tf.expand_dims(self.binary_encoded[:, 3, :, :], axis=3)
-            tf.summary.image('quantized', self.binary_quantize_viz, max_outputs=l2)
-            tf.summary.image('encoded', self.binary_encoded_viz_1, max_outputs=l2)
-            tf.summary.image('encoded_2', self.binary_encoded_viz_2, max_outputs=l2)
+            self.binary_encoded_viz = tf.expand_dims(self.binary_encoded[:, 1, :, :], axis=3)
+            tf.summary.image('quantized', self.binary_quantize_viz, max_outputs=10)
+            tf.summary.image('encoded', self.binary_encoded_viz, max_outputs=10)
 
         with tf.name_scope("histograms"):
-            pass
+            tf.extract_image_patches(self.binary_encoded, [1, B, B, 1], [1, 4, 4, ], [1, 1, 1, 1], padding='NONE')
 
 
 
@@ -126,7 +124,7 @@ def main():
     writer.add_graph(sess.graph)
     merged_summary = tf.summary.merge_all()
 
-    _, summary, p = sess.run([m.conv2_batch, merged_summary, m.powers_of_two])
+    _, summary, b = sess.run([m.conv2_batch, merged_summary, m.binary_encoded])
     writer.add_summary(summary, 0)
 
     writer.close()
