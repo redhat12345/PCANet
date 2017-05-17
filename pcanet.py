@@ -20,7 +20,7 @@ class PCANet:
 
         k1 = 5
         k2 = 5
-        l1 = 8
+        l1 = 12
         l2 = 8
         with tf.name_scope("extract_patches1"):
             self.patches1 = tf.extract_image_patches(image_batch, [1, k1, k2, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding='SAME', name='patches')
@@ -82,6 +82,10 @@ class PCANet:
             tf.summary.image('quantized', self.binary_quantize_viz, max_outputs=l2)
             tf.summary.image('encoded', self.binary_encoded_viz_1, max_outputs=l2)
             tf.summary.image('encoded_2', self.binary_encoded_viz_2, max_outputs=l2)
+
+        with tf.name_scope("histograms"):
+            pass
+
 
 
 def main():
