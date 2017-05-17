@@ -66,16 +66,18 @@ class PCANet:
 
         with tf.name_scope("convolution2"):
             self.conv2 = tf.nn.conv2d(self.conv1_batch, self.top_x_eig2, strides=[1, 1, 1, 1], padding='SAME')
-            self.conv2 = tf.transpose(self.conv2, [0, 3, 1, 2])
+            self.conv2 = tf.reshape(tf.transpose(self.conv2, [0, 3, 1, 2]), [-1, l1, l2, info.IMAGE_W, info.IMAGE_H])
             self.conv2_batch = tf.reshape(self.conv2, [-1, info.IMAGE_W, info.IMAGE_H, 1])
             tf.summary.image('conv2', self.conv2_batch, max_outputs=l2)
 
         with tf.name_scope("binary_quantize"):
             self.binary_quantize = tf.cast(self.conv2 > 0, tf.float32)
             self.powers_of_two = tf.constant([2 ** n for n in range(0, l2)], dtype=tf.float32)
-            self.binary_encoded = tf.reduce_sum(tf.transpose(self.binary_quantize, [0, 2, 3, 1]) * self.powers_of_two, axis=3)
+            self.binary_encoded = tf.reduce_sum(tf.transpose(self.binary_quantize, [0, 1, 3, 4, 2]) * self.powers_of_two, axis=4)
+            print(self.binary_encoded.get_shape())
+
             self.binary_quantize_viz = tf.reshape(tf.expand_dims(self.binary_quantize, axis=4), [-1, info.IMAGE_W, info.IMAGE_H, 1])
-            self.binary_encoded_viz = tf.expand_dims(self.binary_encoded, axis=3)
+            self.binary_encoded_viz = tf.expand_dims(tf.reshape(self.binary_encoded, [-1, info.IMAGE_W, info.IMAGE_H]), axis=3)
             tf.summary.image('quantized', self.binary_quantize_viz, max_outputs=l2)
             tf.summary.image('encoded', self.binary_encoded_viz, max_outputs=l2)
 
