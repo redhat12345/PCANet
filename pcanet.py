@@ -118,12 +118,12 @@ def main():
     sess = tf.Session()
 
     tf.train.start_queue_runners(sess=sess)
-    init = tf.global_variables_initializer()
 
     # define the model
     m = PCANet(train_image_batch, train_label_batch, info)
 
     # run it
+    init = tf.global_variables_initializer()
     sess.run(init)
     writer.add_graph(sess.graph)
     merged_summary = tf.summary.merge_all()
