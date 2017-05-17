@@ -16,6 +16,8 @@ class PCANet:
         self.image_batch = image_batch
         self.label_batch = label_batch
 
+        tf.summary.image('input', self.image_batch, max_outputs=10)
+
         k1 = 5
         k2 = 5
         l1 = 8
@@ -30,8 +32,6 @@ class PCANet:
             x1 = tf.transpose(self.zero_mean_patches1, [2, 1, 0])
             x1_trans = tf.transpose(self.zero_mean_patches1, [2, 0, 1])
             self.patches_covariance1 = tf.matmul(x1, x1_trans, name='patch_covariance')
-
-            tf.summary.image('input', self.image_batch, max_outputs=10)
 
         with tf.name_scope("eignvalue_decomposition1"):
             self.x_eig_vals1, self.x_eig1 = tf.self_adjoint_eig(self.patches_covariance1, name='x_eig')
@@ -67,11 +67,11 @@ class PCANet:
             self.conv2 = tf.nn.conv2d(self.conv1, self.top_x_eig2, strides=[1, 1, 1, 1], padding='SAME')
 
             self.conv2 = tf.reshape(tf.transpose(self.conv2, [0, 3, 1, 2]), [-1, info.IMAGE_W, info.IMAGE_H, 1])
-            tf.summary.image('conv2', self.conv2, max_outputs=10)
+            tf.summary.image('conv2', self.conv2, max_outputs=l1*l2+1)
 
         with tf.name_scope("binary_quantize"):
             self.binary_quantize = tf.cast(self.conv2 > 0, tf.float32)
-            tf.summary.image('binary', self.binary_quantize, max_outputs=10)
+            tf.summary.image('binary', self.binary_quantize, max_outputs=l1*l2+1)
 
 
 def main():
