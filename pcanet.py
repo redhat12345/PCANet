@@ -77,9 +77,11 @@ class PCANet:
             print(self.binary_encoded.get_shape())
 
             self.binary_quantize_viz = tf.reshape(tf.expand_dims(self.binary_quantize, axis=4), [-1, info.IMAGE_W, info.IMAGE_H, 1])
-            self.binary_encoded_viz = tf.expand_dims(tf.reshape(self.binary_encoded, [-1, info.IMAGE_W, info.IMAGE_H]), axis=3)
+            self.binary_encoded_viz_1 = tf.expand_dims(self.binary_encoded[:, 1, :, :], axis=3)
+            self.binary_encoded_viz_2 = tf.expand_dims(self.binary_encoded[:, 3, :, :], axis=3)
             tf.summary.image('quantized', self.binary_quantize_viz, max_outputs=l2)
-            tf.summary.image('encoded', self.binary_encoded_viz, max_outputs=l2)
+            tf.summary.image('encoded', self.binary_encoded_viz_1, max_outputs=l2)
+            tf.summary.image('encoded_2', self.binary_encoded_viz_2, max_outputs=l2)
 
 
 def main():
