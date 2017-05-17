@@ -84,7 +84,7 @@ class PCANet:
             self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=self.h2, labels=self.label_batch_one_hot), name='loss')
             self.train = tf.train.AdamOptimizer(learning_rate=0.001).minimize(self.loss)
             self.predictions = tf.cast(tf.argmax(tf.nn.softmax(self.h2)), tf.float32)
-            self.accuracy = tf.reduce_mean(tf.cast(tf.equal(self.label_batch_one_hot, self.predictions), tf.float32), name='accuracy')
+            self.accuracy = tf.reduce_mean(tf.cast(tf.equal(self.label_batch, self.predictions), tf.float32), name='accuracy')
 
             tf.summary.scalar("loss", self.loss)
             tf.summary.scalar("accuracy", self.accuracy)
