@@ -166,7 +166,7 @@ def main():
     merged_summary = tf.summary.merge_all()
 
     # extract PCA features
-    train_pcanet_features, train_labels, summary = sess.run([m.output_features, merged_summary, train_label_batch])
+    train_pcanet_features, train_labels, summary = sess.run([m.output_features, train_label_batch, merged_summary])
     writer.add_summary(summary, 0)
 
     writer.close()
@@ -175,7 +175,7 @@ def main():
     svm = LinearSVC(C=1.0)
 
     svm.fit(train_pcanet_features, train_labels)
-    train_score = svm.score(train_pcanet_features, train_label_batch)
+    train_score = svm.score(train_pcanet_features, train_labels)
     print("training score:", train_score)
 
     # test
