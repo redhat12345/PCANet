@@ -82,10 +82,8 @@ class PCANet:
             tf.summary.image('encoded', self.binary_encoded_viz, max_outputs=10)
 
         with tf.name_scope("histograms"):
-            self.n_bins = k = pow(2, l2) + 1
+            self.n_bins = k = pow(2, l2)
             self.bins = np.linspace(-0.5, k - 0.5, self.n_bins)
-            print(self.bins)
-            exit(0)
 
             # tf.extract_image_patches(self.binary_encoded, [1, B, B, 1], [1, 4, 4, ], [1, 1, 1, 1], padding='NONE')
 
