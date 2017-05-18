@@ -4,6 +4,7 @@
 # https://arxiv.org/pdf/1404.3606.pdf
 
 import tensorflow as tf
+import numpy as np
 from datetime import datetime
 from dataset_utils import load
 import os
@@ -74,7 +75,6 @@ class PCANet:
             self.binary_quantize = tf.cast(self.conv2 > 0, tf.float32)
             self.powers_of_two = tf.constant([2 ** n for n in range(0, l2)], dtype=tf.float32)
             self.binary_encoded = tf.reduce_sum(tf.transpose(self.binary_quantize, [0, 1, 3, 4, 2]) * self.powers_of_two, axis=4)
-            print(self.binary_encoded.get_shape())
 
             self.binary_quantize_viz = tf.reshape(tf.expand_dims(self.binary_quantize, axis=4), [-1, info.IMAGE_W, info.IMAGE_H, 1])
             self.binary_encoded_viz = tf.expand_dims(self.binary_encoded[:, 1, :, :], axis=3)
@@ -82,7 +82,12 @@ class PCANet:
             tf.summary.image('encoded', self.binary_encoded_viz, max_outputs=10)
 
         with tf.name_scope("histograms"):
-            tf.extract_image_patches(self.binary_encoded, [1, B, B, 1], [1, 4, 4, ], [1, 1, 1, 1], padding='NONE')
+            self.n_bins = k = pow(2, l2) + 1
+            self.bins = np.linspace(-0.5, k - 0.5, self.n_bins)
+            print(self.bins)
+            exit(0)
+
+            # tf.extract_image_patches(self.binary_encoded, [1, B, B, 1], [1, 4, 4, ], [1, 1, 1, 1], padding='NONE')
 
 
 
@@ -125,6 +130,7 @@ def main():
     merged_summary = tf.summary.merge_all()
 
     _, summary, b = sess.run([m.conv2_batch, merged_summary, m.binary_encoded])
+    print(np.max(b))
     writer.add_summary(summary, 0)
 
     writer.close()
