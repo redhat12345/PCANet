@@ -6,7 +6,6 @@
 import os
 import sys
 from datetime import datetime
-from math import floor
 from sklearn.svm import LinearSVC
 from subprocess import call
 
@@ -17,36 +16,21 @@ from dataset_utils import load
 
 
 class PCANet:
-    def __init__(self, image_batch, info):
+    def __init__(self, image_batch, hyperparams, info):
         self.image_batch = image_batch
 
         tf.summary.image('input', self.image_batch, max_outputs=10)
 
-        k1 = 7
-        k2 = 7
-        l1 = 8
-        l2 = 8
-        block_w = 7
-        block_h = 7
-        block_overlap = 0.5
-        stride_w = max(floor((1 - block_overlap) * block_w), 1)
-        stride_h = max(floor((1 - block_overlap) * block_h), 1)
-        print(stride_w, stride_h)
-        w_steps = range(block_w, info.IMAGE_W + 1, stride_w)
-        h_steps = range(block_h, info.IMAGE_H + 1, stride_h)
-        B = len(h_steps) * len(w_steps)
-        num_hist_bins = 2 ** l2
-
-        # check that the blocks in the final step to be even & cover all pixels
-        if w_steps[-1] != info.IMAGE_W:
-            print("invalid block_overlap or block width for given image width:")
-            print("W: %i, Block W: %i, Overlap: %0.2f" % (info.IMAGE_W, block_w, block_overlap))
-            exit(0)
-
-        if h_steps[-1] != info.IMAGE_H:
-            print("invalid block_overlap or block height for given image height")
-            print("H: %i, Block H: %i, Overlap: %0.2f" % (info.IMAGE_H, block_h, block_overlap))
-            exit(0)
+        k1 = hyperparams['k1']
+        k2 = hyperparams['k2']
+        l1 = hyperparams['l1']
+        l2 = hyperparams['l2']
+        stride_w = hyperparams['stride_w']
+        stride_h = hyperparams['stride_h']
+        block_w = hyperparams['block_w']
+        block_h = hyperparams['block_h']
+        num_hist_bins = hyperparams['num_hist_bins']
+        num_blocks = hyperparams['num_blocks']
 
         with tf.name_scope("extract_patches1"):
             self.patches1 = tf.extract_image_patches(image_batch, [1, k1, k2, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding='SAME', name='patches')
@@ -118,14 +102,14 @@ class PCANet:
             self.blocks = tf.extract_image_patches(self.binary_flat, [1, block_w, block_h, 1], [1, stride_w, stride_h, 1], [1, 1, 1, 1], padding='VALID')
             self.blocks_flat = tf.reshape(self.blocks, [-1, block_w * block_h])
             self.blocks_flat_T = tf.transpose(self.blocks_flat, [1, 0])
-            total_number_of_histograms = info.batch_size * l1 * B
+            total_number_of_histograms = info.batch_size * l1 * num_blocks
             self.segment_ids = self.blocks_flat_T + [num_hist_bins * i for i in range(total_number_of_histograms)]
             self.segment_ids = tf.cast(tf.transpose(self.segment_ids, [1, 0]), tf.int32)
             number_of_segments = total_number_of_histograms * num_hist_bins
             self.histograms = tf.unsorted_segment_sum(tf.ones_like(self.blocks_flat), self.segment_ids, number_of_segments)
-            self.histograms = tf.reshape(self.histograms, [l1, -1, B * num_hist_bins])
+            self.histograms = tf.reshape(self.histograms, [l1, -1, num_blocks * num_hist_bins])
 
-        self.output_features = tf.reshape(tf.transpose(self.histograms, [1, 0, 2]), [-1, l1 * B * num_hist_bins])
+        self.output_features = tf.reshape(tf.transpose(self.histograms, [1, 0, 2]), [-1, l1 * num_blocks * num_hist_bins])
 
 
 def main():
@@ -158,8 +142,48 @@ def main():
     tf.train.start_queue_runners(sess=sess)
     init = tf.global_variables_initializer()
 
+    # Hyper-params
+    k1 = 7
+    k2 = 7
+    l1 = 8
+    l2 = 8
+    block_w = 7
+    block_h = 7
+    block_overlap = 0.5
+    num_hist_bins = 2 ** l2
+    stride_w = max(int((1 - block_overlap) * block_w), 1)
+    stride_h = max(int((1 - block_overlap) * block_h), 1)
+    w_steps = range(block_w, info.IMAGE_W + 1, stride_w)
+    h_steps = range(block_h, info.IMAGE_H + 1, stride_h)
+    num_blocks = len(h_steps) * len(w_steps)
+
+    hyperparams = {
+        'l1': l1,
+        'l2': l2,
+        'k1': k1,
+        'k2': k2,
+        'num_hist_bins': num_hist_bins,
+        'block_w': block_w,
+        'block_h': block_h,
+        'stride_w': stride_w,
+        'stride_h': stride_h,
+        'num_blocks': num_blocks,
+    }
+
+    # check that the blocks in the final step to be even & cover all pixels
+    if w_steps[-1] != info.IMAGE_W:
+        print("invalid block_overlap or block width for given image width:")
+        print("W: %i, Block W: %i, Overlap: %0.2f" % (info.IMAGE_W, block_w, block_overlap))
+        exit(0)
+
+    if h_steps[-1] != info.IMAGE_H:
+        print("invalid block_overlap or block height for given image height")
+        print("H: %i, Block H: %i, Overlap: %0.2f" % (info.IMAGE_H, block_h, block_overlap))
+        exit(0)
+
     # define the model
-    m = PCANet(train_image_batch, info)
+    m = PCANet(train_image_batch, hyperparams, info)
+    m.image_batch = train_image_batch
 
     # define placeholders for putting scores on Tensorboard
     train_score_tensor = tf.placeholder(tf.float32, shape=[], name='train_score')
