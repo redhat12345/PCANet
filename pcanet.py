@@ -172,7 +172,7 @@ def main():
     writer.close()
 
     # train linear SVM
-    svm = LinearSVC(C=1.0)
+    svm = LinearSVC(C=10)
 
     svm.fit(train_pcanet_features, train_labels)
     train_score = svm.score(train_pcanet_features, train_labels)
