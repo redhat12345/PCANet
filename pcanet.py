@@ -184,7 +184,7 @@ def main():
 
     print("training score:", train_score)
     summary = sess.run(train_summary, feed_dict={train_score_tensor: train_score})
-    writer.add_summary(summary, 1)
+    writer.add_summary(summary, 0)
 
     # switch to test set, compute PCA filters, and score with learned SVM parameters
     scores = []
