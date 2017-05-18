@@ -22,12 +22,12 @@ class PCANet:
 
         tf.summary.image('input', self.image_batch, max_outputs=10)
 
-        k1 = 5
-        k2 = 5
-        l1 = 12
+        k1 = 7
+        k2 = 7
+        l1 = 8
         l2 = 8
-        block_w = 8
-        block_h = 8
+        block_w = 7
+        block_h = 7
         block_overlap = 0.5
         stride_w = max(ceil((1 - block_overlap) * block_w), 1)
         stride_h = max(ceil((1 - block_overlap) * block_h), 1)
