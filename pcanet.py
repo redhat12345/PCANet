@@ -155,8 +155,8 @@ def main():
     writer.add_graph(sess.graph)
     merged_summary = tf.summary.merge_all()
 
-    _, summary, b = sess.run([m.conv2_batch, merged_summary, m.binary_encoded])
-    print(np.max(b))
+    _, summary, b = sess.run([m.conv2_batch, merged_summary, m.blocks])
+    print(b[0][0][0])
     writer.add_summary(summary, 0)
 
     writer.close()
