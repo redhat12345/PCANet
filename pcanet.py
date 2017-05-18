@@ -7,6 +7,7 @@ import os
 import sys
 from datetime import datetime
 from math import ceil
+from sklearn.svm import LinearSVC
 from subprocess import call
 
 import numpy as np
@@ -16,9 +17,8 @@ from dataset_utils import load
 
 
 class PCANet:
-    def __init__(self, image_batch, label_batch, info):
+    def __init__(self, image_batch, info):
         self.image_batch = image_batch
-        self.label_batch = label_batch
 
         tf.summary.image('input', self.image_batch, max_outputs=10)
 
@@ -122,9 +122,9 @@ class PCANet:
             self.segment_ids = tf.cast(tf.transpose(self.segment_ids, [1, 0]), tf.int32)
             number_of_segments = total_number_of_histograms * num_hist_bins
             self.histograms = tf.unsorted_segment_sum(tf.ones_like(self.blocks_flat), self.segment_ids, number_of_segments)
-            # Undo the flatten operation
             self.histograms = tf.reshape(self.histograms, [l1, -1, B * num_hist_bins])
-            self.histograms = tf.reshape(tf.transpose(self.histograms, [1, 0, 2]), [-1, l1 * B * num_hist_bins])
+
+        self.output_features = tf.reshape(tf.transpose(self.histograms, [1, 0, 2]), [-1, l1 * B * num_hist_bins])
 
 
 def main():
@@ -158,17 +158,35 @@ def main():
     init = tf.global_variables_initializer()
 
     # define the model
-    m = PCANet(train_image_batch, train_label_batch, info)
+    m = PCANet(train_image_batch, info)
 
     # run it
     sess.run(init)
     writer.add_graph(sess.graph)
     merged_summary = tf.summary.merge_all()
 
-    _, summary = sess.run([m.conv2_batch, merged_summary])
+    # extract PCA features
+    train_pcanet_features, summary = sess.run([m.output_features, merged_summary])
     writer.add_summary(summary, 0)
 
     writer.close()
+
+    # train linear SVM
+    svm = LinearSVC(C=1.0)
+    svm.fit(train_pcanet_features, train_label_batch)
+    train_score = svm.score(train_pcanet_features, train_label_batch)
+    print("training score:", train_score)
+
+    # test
+    scores = []
+    for i in range(10):
+        m.image_batch = test_image_batch
+        test_pcanet_features, summary = sess.run([m.output_features, merged_summary])
+        score = svm.score(test_pcanet_features, test_label_batch)
+        print("batch test score:", score)
+        scores.append(score)
+
+    print("Final score on test set: ", sum(scores)/len(scores))
 
 
 if __name__ == '__main__':
