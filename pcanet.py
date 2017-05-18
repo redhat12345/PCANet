@@ -3,13 +3,16 @@
 # This code attempts to replicate some of these results:
 # https://arxiv.org/pdf/1404.3606.pdf
 
-import tensorflow as tf
-import numpy as np
-from datetime import datetime
-from dataset_utils import load
 import os
 import sys
+from datetime import datetime
+from math import ceil
 from subprocess import call
+
+import numpy as np
+import tensorflow as tf
+
+from dataset_utils import load
 
 
 class PCANet:
@@ -23,6 +26,24 @@ class PCANet:
         k2 = 5
         l1 = 12
         l2 = 8
+        block_w = 8
+        block_h = 8
+        block_overlap = 0.5
+        stride_w = max(ceil((1 - block_overlap) * block_w), 1)
+        stride_h = max(ceil((1 - block_overlap) * block_h), 1)
+        w_steps = range(block_w, info.IMAGE_W + 1, stride_w)
+        h_steps = range(block_h, info.IMAGE_H + 1, stride_h)
+        # check that the blocks in the final step to be even & cover all pixels
+        if w_steps[-1] != info.IMAGE_W:
+            print("invalid block_overlap or block width for given image width:")
+            print("W: %i, Block W: %i, Overlap: %0.2f" % (info.IMAGE_W, block_w, block_overlap))
+            exit(0)
+
+        if h_steps[-1] != info.IMAGE_H:
+            print("invalid block_overlap or block height for given image height")
+            print("H: %i, Block H: %i, Overlap: %0.2f" % (info.IMAGE_H, block_h, block_overlap))
+            exit(0)
+
         with tf.name_scope("extract_patches1"):
             self.patches1 = tf.extract_image_patches(image_batch, [1, k1, k2, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding='SAME', name='patches')
             self.patches1 = tf.reshape(self.patches1, [-1, k1 * k2, info.N_CHANNELS], name='patches_shaped')
@@ -44,8 +65,10 @@ class PCANet:
 
         with tf.name_scope("convolution1"):
             self.conv1 = tf.nn.conv2d(image_batch, self.top_x_eig1, strides=[1, 1, 1, 1], padding='SAME')
-            self.conv1 = tf.transpose(self.conv1, [0, 3, 1, 2])
-            self.conv1_batch = tf.reshape(self.conv1, [-1, info.IMAGE_W, info.IMAGE_H, 1])
+            self.conv1 = tf.transpose(self.conv1, [3, 0, 1, 2])
+            # conv1 is now (l1, batch_size, img_w, img_h)
+            self.conv1_batch = tf.expand_dims(tf.reshape(self.conv1, [-1, info.IMAGE_W, info.IMAGE_H]), axis=3)
+            # conv1 batch is (l1 * batch_size, img_w, img_h)
 
             tf.summary.image('conv1', self.conv1_batch, max_outputs=l1)
 
@@ -67,14 +90,17 @@ class PCANet:
 
         with tf.name_scope("convolution2"):
             self.conv2 = tf.nn.conv2d(self.conv1_batch, self.top_x_eig2, strides=[1, 1, 1, 1], padding='SAME')
-            self.conv2 = tf.reshape(tf.transpose(self.conv2, [0, 3, 1, 2]), [-1, l1, l2, info.IMAGE_W, info.IMAGE_H])
+            self.conv2 = tf.reshape(self.conv2, [l1, -1, info.IMAGE_W, info.IMAGE_H, l2])
+            self.conv2 = tf.transpose(self.conv2, [0, 4, 1, 2, 3])
+            # conv2 is now (l1, l2, batch_size, img_w, img_h)
             self.conv2_batch = tf.reshape(self.conv2, [-1, info.IMAGE_W, info.IMAGE_H, 1])
+
             tf.summary.image('conv2', self.conv2_batch, max_outputs=l2)
 
         with tf.name_scope("binary_quantize"):
             self.binary_quantize = tf.cast(self.conv2 > 0, tf.float32)
             self.powers_of_two = tf.constant([2 ** n for n in range(0, l2)], dtype=tf.float32)
-            self.binary_encoded = tf.reduce_sum(tf.transpose(self.binary_quantize, [0, 1, 3, 4, 2]) * self.powers_of_two, axis=4)
+            self.binary_encoded = tf.reduce_sum(tf.transpose(self.binary_quantize, [0, 2, 3, 4, 1]) * self.powers_of_two, axis=4)
 
             self.binary_quantize_viz = tf.reshape(tf.expand_dims(self.binary_quantize, axis=4), [-1, info.IMAGE_W, info.IMAGE_H, 1])
             self.binary_encoded_viz = tf.expand_dims(self.binary_encoded[:, 1, :, :], axis=3)
@@ -84,9 +110,11 @@ class PCANet:
         with tf.name_scope("histograms"):
             self.n_bins = k = pow(2, l2)
             self.bins = np.linspace(-0.5, k - 0.5, self.n_bins)
-
-            # tf.extract_image_patches(self.binary_encoded, [1, B, B, 1], [1, 4, 4, ], [1, 1, 1, 1], padding='NONE')
-
+            self.binary_encoded_flat = tf.expand_dims(tf.reshape(self.binary_encoded, [-1, info.IMAGE_W, info.IMAGE_H]), axis=3)
+            self.blocks = tf.extract_image_patches(self.binary_encoded_flat, [1, block_w, block_h, 1], [1, stride_w, stride_h, 1], [1, 1, 1, 1], padding='VALID')
+            self.blocks = tf.reshape(self.blocks, [l1, -1, len(w_steps), len(h_steps), block_w * block_h])
+            print(self.blocks.get_shape())
+            exit(0)
 
 
 def main():
@@ -95,7 +123,7 @@ def main():
     day_dir = "log_data/" + day_str + "/"
     log_path = day_dir + day_str + "_" + time_str + "/"
     writer = tf.summary.FileWriter(log_path)
-    if not os.path.exists(day_dir):
+    if not os.path.exists(day_dir) and '--no-log' not in sys.argv:
         os.mkdir(day_dir)
 
     # Open text editor to write description of the run and commit it
