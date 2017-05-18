@@ -6,7 +6,7 @@
 import os
 import sys
 from datetime import datetime
-from math import ceil
+from math import floor
 from sklearn.svm import LinearSVC
 from subprocess import call
 
@@ -29,8 +29,9 @@ class PCANet:
         block_w = 7
         block_h = 7
         block_overlap = 0.5
-        stride_w = max(ceil((1 - block_overlap) * block_w), 1)
-        stride_h = max(ceil((1 - block_overlap) * block_h), 1)
+        stride_w = max(floor((1 - block_overlap) * block_w), 1)
+        stride_h = max(floor((1 - block_overlap) * block_h), 1)
+        print(stride_w, stride_h)
         w_steps = range(block_w, info.IMAGE_W + 1, stride_w)
         h_steps = range(block_h, info.IMAGE_H + 1, stride_h)
         B = len(h_steps) * len(w_steps)
