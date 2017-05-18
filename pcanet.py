@@ -33,6 +33,9 @@ class PCANet:
         stride_h = max(ceil((1 - block_overlap) * block_h), 1)
         w_steps = range(block_w, info.IMAGE_W + 1, stride_w)
         h_steps = range(block_h, info.IMAGE_H + 1, stride_h)
+        B = len(h_steps) * len(w_steps)
+        num_hist_bins = 2 ** l2
+
         # check that the blocks in the final step to be even & cover all pixels
         if w_steps[-1] != info.IMAGE_W:
             print("invalid block_overlap or block width for given image width:")
@@ -112,9 +115,16 @@ class PCANet:
             self.bins = np.linspace(-0.5, k - 0.5, self.n_bins)
             self.binary_flat = tf.expand_dims(tf.reshape(self.binary_encoded, [-1, info.IMAGE_W, info.IMAGE_H]), axis=3)
             self.blocks = tf.extract_image_patches(self.binary_flat, [1, block_w, block_h, 1], [1, stride_w, stride_h, 1], [1, 1, 1, 1], padding='VALID')
-            self.blocks = tf.reshape(self.blocks, [l1, -1, len(w_steps) * len(h_steps), block_w * block_h])
-            print(self.blocks.get_shape())
-
+            self.blocks_flat = tf.reshape(self.blocks, [-1, block_w * block_h])
+            self.blocks_flat_T = tf.transpose(self.blocks_flat, [1, 0])
+            total_number_of_histograms = info.batch_size * l1 * B
+            self.segment_ids = self.blocks_flat_T + [num_hist_bins * i for i in range(total_number_of_histograms)]
+            self.segment_ids = tf.cast(tf.transpose(self.segment_ids, [1, 0]), tf.int32)
+            number_of_segments = total_number_of_histograms * num_hist_bins
+            self.histograms = tf.unsorted_segment_sum(tf.ones_like(self.blocks_flat), self.segment_ids, number_of_segments)
+            # Undo the flatten operation
+            self.histograms = tf.reshape(self.histograms, [l1, -1, B * num_hist_bins])
+            self.histograms = tf.reshape(tf.transpose(self.histograms, [1, 0, 2]), [-1, l1 * B * num_hist_bins])
 
 
 def main():
@@ -155,8 +165,7 @@ def main():
     writer.add_graph(sess.graph)
     merged_summary = tf.summary.merge_all()
 
-    _, summary, b = sess.run([m.conv2_batch, merged_summary, m.blocks])
-    print(b[0][0][0])
+    _, summary = sess.run([m.conv2_batch, merged_summary])
     writer.add_summary(summary, 0)
 
     writer.close()
