@@ -110,11 +110,11 @@ class PCANet:
         with tf.name_scope("histograms"):
             self.n_bins = k = pow(2, l2)
             self.bins = np.linspace(-0.5, k - 0.5, self.n_bins)
-            self.binary_encoded_flat = tf.expand_dims(tf.reshape(self.binary_encoded, [-1, info.IMAGE_W, info.IMAGE_H]), axis=3)
-            self.blocks = tf.extract_image_patches(self.binary_encoded_flat, [1, block_w, block_h, 1], [1, stride_w, stride_h, 1], [1, 1, 1, 1], padding='VALID')
-            self.blocks = tf.reshape(self.blocks, [l1, -1, len(w_steps), len(h_steps), block_w * block_h])
+            self.binary_flat = tf.expand_dims(tf.reshape(self.binary_encoded, [-1, info.IMAGE_W, info.IMAGE_H]), axis=3)
+            self.blocks = tf.extract_image_patches(self.binary_flat, [1, block_w, block_h, 1], [1, stride_w, stride_h, 1], [1, 1, 1, 1], padding='VALID')
+            self.blocks = tf.reshape(self.blocks, [l1, -1, len(w_steps) * len(h_steps), block_w * block_h])
             print(self.blocks.get_shape())
-            exit(0)
+
 
 
 def main():
