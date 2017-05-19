@@ -16,10 +16,10 @@ from dataset_utils import load
 
 
 class PCANet:
-    def __init__(self, image_batch, hyperparams, info):
-        self.image_batch = image_batch
+    def __init__(self, hyperparams, info):
+        self._image_batch = None
 
-        tf.summary.image('input', self.image_batch, max_outputs=10)
+        tf.summary.image('input', self._image_batch, max_outputs=10)
 
         k1 = hyperparams['k1']
         k2 = hyperparams['k2']
@@ -33,7 +33,7 @@ class PCANet:
         num_blocks = hyperparams['num_blocks']
 
         with tf.name_scope("extract_patches1"):
-            self.patches1 = tf.extract_image_patches(image_batch, [1, k1, k2, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding='SAME', name='patches')
+            self.patches1 = tf.extract_image_patches(self._image_batch, [1, k1, k2, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding='SAME', name='patches')
             self.patches1 = tf.reshape(self.patches1, [-1, k1 * k2, info.N_CHANNELS], name='patches_shaped')
             # TODO: figure out how to unvectorize for multi-channel images
             # self.patches1 = tf.reshape(self.patches1, [-1, info.N_CHANNELS,  k1 * k2], name='patches_shaped')
@@ -52,7 +52,7 @@ class PCANet:
             tf.summary.image('filt1', self.filt1_viz, max_outputs=l1)
 
         with tf.name_scope("convolution1"):
-            self.conv1 = tf.nn.conv2d(image_batch, self.top_x_eig1, strides=[1, 1, 1, 1], padding='SAME')
+            self.conv1 = tf.nn.conv2d(self._image_batch, self.top_x_eig1, strides=[1, 1, 1, 1], padding='SAME')
             self.conv1 = tf.transpose(self.conv1, [3, 0, 1, 2])
             # conv1 is now (l1, batch_size, img_w, img_h)
             self.conv1_batch = tf.expand_dims(tf.reshape(self.conv1, [-1, info.IMAGE_W, info.IMAGE_H]), axis=3)
@@ -110,6 +110,9 @@ class PCANet:
             self.histograms = tf.reshape(self.histograms, [l1, -1, num_blocks * num_hist_bins])
 
         self.output_features = tf.reshape(tf.transpose(self.histograms, [1, 0, 2]), [-1, l1 * num_blocks * num_hist_bins])
+
+    def set_input_tensor(self, image_batch):
+        self._image_batch = image_batch
 
 
 def main():
@@ -182,8 +185,8 @@ def main():
         exit(0)
 
     # define the model
-    m = PCANet(train_image_batch, hyperparams, info)
-    m.image_batch = test_image_batch
+    m = PCANet(hyperparams, info)
+    m.set_input_tensor(train_image_batch)
 
     # define placeholders for putting scores on Tensorboard
     train_score_tensor = tf.placeholder(tf.float32, shape=[], name='train_score')
@@ -202,7 +205,7 @@ def main():
     # print(q[0])
 
     # extract PCA features from training set
-    train_pcanet_features, train_labels, summary = sess.run([m.output_features, test_label_batch, merged_summary_op])
+    train_pcanet_features, train_labels, summary = sess.run([m.output_features, train_label_batch, merged_summary_op])
     writer.add_summary(summary, 0)
 
     # train linear SVM
@@ -216,14 +219,12 @@ def main():
 
     # switch to test set, compute PCA filters, and score with learned SVM parameters
     scores = []
-    test_labels = sess.run(test_label_batch)
-    m.image_batch = test_image_batch
+    m.set_input_tensor(test_image_batch)
     for i in range(4):
-        test_pcanet_features, merged_summary = sess.run([m.output_features, merged_summary_op])
+        test_pcanet_features, test_labels, merged_summary = sess.run([m.output_features, test_label_batch, merged_summary_op])
         writer.add_summary(merged_summary, i + 1)
 
         score = svm.score(test_pcanet_features, test_labels)
-        # score = svm.score(train_pcanet_features, train_labels)
         scores.append(score)
 
         print("batch test score:", score)
