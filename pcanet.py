@@ -217,13 +217,13 @@ def main():
     # switch to test set, compute PCA filters, and score with learned SVM parameters
     scores = []
     test_labels = sess.run(test_label_batch)
-    # m.image_batch = test_image_batch
+    m.image_batch = test_image_batch
     for i in range(4):
         test_pcanet_features, summary = sess.run([m.output_features, merged_summary])
         writer.add_summary(summary, i)
 
-        # score = svm.score(test_pcanet_features, test_labels)
-        score = svm.score(train_pcanet_features, train_labels)
+        score = svm.score(test_pcanet_features, test_labels)
+        # score = svm.score(train_pcanet_features, train_labels)
         scores.append(score)
 
         print("batch test score:", score)
