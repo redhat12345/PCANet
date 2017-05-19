@@ -201,9 +201,6 @@ def main():
     train_summary_op = tf.summary.merge_all('train')
     test_summary_op = tf.summary.merge_all('test')
 
-    # q = sess.run(m.binary_encoded)
-    # print(q[0])
-
     # extract PCA features from training set
     train_pcanet_features, train_labels, summary = sess.run([m.output_features, train_label_batch, merged_summary_op])
     writer.add_summary(summary, 0)
