@@ -203,7 +203,7 @@ def main():
     writer.add_summary(summary, 0)
 
     cov = sess.run(m.patches_covariance1)
-    np.savetxt('cov.csv', np.squeeze(cov))
+    np.savetxt('cov_1000.csv', np.squeeze(cov))
     exit(0)
 
     # train linear SVM
