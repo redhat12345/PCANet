@@ -202,6 +202,10 @@ def main():
     train_pcanet_features, train_labels, summary = sess.run([m.output_features, train_label_batch, merged_summary])
     writer.add_summary(summary, 0)
 
+    cov = sess.run(m.patches_covariance1)
+    np.savetxt('cov.csv', np.squeeze(cov))
+    exit(0)
+
     # train linear SVM
     svm = LinearSVC(C=1, fit_intercept=False)
     svm.fit(train_pcanet_features, train_labels)
