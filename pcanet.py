@@ -203,7 +203,7 @@ def main():
 
     # extract PCA features from training set
     train_pcanet_features, train_labels, summary = sess.run([m.output_features, test_label_batch, merged_summary_op])
-    # writer.add_summary(summary, 0)
+    writer.add_summary(summary, 0)
 
     # train linear SVM
     svm = LinearSVC(C=1, fit_intercept=False)
