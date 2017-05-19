@@ -219,7 +219,8 @@ def main():
     test_labels = sess.run(test_label_batch)
     # m.image_batch = test_image_batch
     for i in range(4):
-        test_pcanet_features = sess.run(m.output_features)
+        test_pcanet_features, summary = sess.run([m.output_features, merged_summary])
+        writer.add_summary(summary, i)
 
         # score = svm.score(test_pcanet_features, test_labels)
         score = svm.score(train_pcanet_features, train_labels)
