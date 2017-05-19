@@ -203,9 +203,9 @@ def main():
     train_pcanet_features, train_labels, summary = sess.run([m.output_features, train_label_batch, merged_summary])
     writer.add_summary(summary, 0)
 
-    q = sess.run(m.x_eig1)
-    np.savetxt('eig.csv', np.squeeze(q))
-    exit(0)
+    # q = sess.run(m.x_eig1)
+    # np.savetxt('eig.csv', np.squeeze(q))
+    # exit(0)
 
     # train linear SVM
     svm = LinearSVC(C=1, fit_intercept=False)
@@ -220,7 +220,7 @@ def main():
     scores = []
     test_labels = sess.run(test_label_batch)
     m.image_batch = test_image_batch
-    for i in range(10):
+    for i in range(4):
         test_pcanet_features = sess.run(m.output_features)
 
         score = svm.score(test_pcanet_features, test_labels)
