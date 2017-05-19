@@ -16,8 +16,9 @@ from dataset_utils import load
 
 
 class PCANet:
-    def __init__(self, hyperparams, info):
-        self._image_batch = None
+    def __init__(self,init_image_batch, hyperparams, info):
+        self._image_batch = init_image_batch
+        tf.summary.image('input', self._image_batch, max_outputs=10)
 
         k1 = hyperparams['k1']
         k2 = hyperparams['k2']
@@ -109,8 +110,7 @@ class PCANet:
 
         self.output_features = tf.reshape(tf.transpose(self.histograms, [1, 0, 2]), [-1, l1 * num_blocks * num_hist_bins])
 
-    def set_input_tensor(self, image_batch, name=''):
-        tf.summary.image('input_' + name, image_batch, max_outputs=10)
+    def set_input_tensor(self, image_batch):
         self._image_batch = image_batch
 
 
@@ -185,8 +185,8 @@ def main():
         exit(0)
 
     # define the model
-    m = PCANet(hyperparams, info)
-    m.set_input_tensor(train_image_batch, name='train')
+    m = PCANet(train_image_batch, hyperparams, info)
+    # m.set_input_tensor(train_image_batch)
 
     # define placeholders for putting scores on Tensorboard
     train_score_tensor = tf.placeholder(tf.float32, shape=[], name='train_score')
@@ -207,6 +207,7 @@ def main():
     # extract PCA features from training set
     train_pcanet_features, train_labels, summary = sess.run([m.output_features, train_label_batch, merged_summary_op])
     writer.add_summary(summary, 0)
+    print(train_labels[:10])
 
     # train linear SVM
     svm = LinearSVC(C=1, fit_intercept=False)
@@ -219,13 +220,15 @@ def main():
 
     # switch to test set, compute PCA filters, and score with learned SVM parameters
     scores = []
-    m.set_input_tensor(test_image_batch, name='test')
+    m.set_input_tensor(test_image_batch)
     for i in range(4):
         test_pcanet_features, test_labels, merged_summary = sess.run([m.output_features, test_label_batch, merged_summary_op])
         writer.add_summary(merged_summary, i + 1)
 
         score = svm.score(test_pcanet_features, test_labels)
         scores.append(score)
+
+        print(test_labels[:10])
 
         print("batch test score:", score)
         test_summary = sess.run(test_summary_op, feed_dict={test_score_tensor: score})
