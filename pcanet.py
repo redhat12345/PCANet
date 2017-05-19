@@ -139,8 +139,6 @@ def main():
     # setup the input data pipelines
     train_image_batch, train_label_batch, test_image_batch, test_label_batch, info = load('mnist')
     # train_image_batch, train_label_batch, test_image_batch, test_label_batch, info = load('cifar10')
-    tf.summary.image("train_image", train_image_batch, max_outputs=5)
-    tf.summary.image("test_image", test_image_batch, max_outputs=5)
 
     sess = tf.Session()
 
