@@ -70,7 +70,8 @@ class PCANet:
 
         with tf.name_scope("eignvalue_decomposition2"):
             self.x_eig_vals2, self.x_eig2 = tf.self_adjoint_eig(self.patches_covariance2, name='x_eig')
-            self.top_x_eig2 = tf.reverse(self.x_eig2, axis=[2])[:, :, 0:l2]
+            self.top_x_eig2 = tf.reverse(-self.x_eig2, axis=[2])[:, :, 0:l2]
+            # negative sign makes it behave like MATLAB's eig, although the math is correct either way
             self.top_x_eig2 = tf.transpose(tf.reshape(self.top_x_eig2, [1, k1, k2, l2]), [2, 1, 0, 3])
 
             self.filt2_viz = tf.transpose(self.top_x_eig2, [3, 0, 1, 2])
@@ -202,8 +203,8 @@ def main():
     train_pcanet_features, train_labels, summary = sess.run([m.output_features, train_label_batch, merged_summary])
     writer.add_summary(summary, 0)
 
-    cov = sess.run(m.patches_covariance1)
-    np.savetxt('cov_1000.csv', np.squeeze(cov))
+    q = sess.run(m.x_eig1)
+    np.savetxt('eig.csv', np.squeeze(q))
     exit(0)
 
     # train linear SVM
