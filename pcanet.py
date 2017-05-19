@@ -19,8 +19,6 @@ class PCANet:
     def __init__(self, hyperparams, info):
         self._image_batch = None
 
-        tf.summary.image('input', self._image_batch, max_outputs=10)
-
         k1 = hyperparams['k1']
         k2 = hyperparams['k2']
         l1 = hyperparams['l1']
@@ -111,8 +109,10 @@ class PCANet:
 
         self.output_features = tf.reshape(tf.transpose(self.histograms, [1, 0, 2]), [-1, l1 * num_blocks * num_hist_bins])
 
-    def set_input_tensor(self, image_batch):
+    def set_input_tensor(self, image_batch, name=''):
+        tf.summary.image('input_' + name, image_batch, max_outputs=10)
         self._image_batch = image_batch
+
 
 
 def main():
@@ -186,7 +186,7 @@ def main():
 
     # define the model
     m = PCANet(hyperparams, info)
-    m.set_input_tensor(train_image_batch)
+    m.set_input_tensor(train_image_batch, name='train')
 
     # define placeholders for putting scores on Tensorboard
     train_score_tensor = tf.placeholder(tf.float32, shape=[], name='train_score')
@@ -219,7 +219,7 @@ def main():
 
     # switch to test set, compute PCA filters, and score with learned SVM parameters
     scores = []
-    m.set_input_tensor(test_image_batch)
+    m.set_input_tensor(test_image_batch, name='test')
     for i in range(4):
         test_pcanet_features, test_labels, merged_summary = sess.run([m.output_features, test_label_batch, merged_summary_op])
         writer.add_summary(merged_summary, i + 1)
