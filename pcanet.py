@@ -194,16 +194,16 @@ def main():
     # run it
     sess.run(init)
     writer.add_graph(sess.graph)
-    merged_summary = tf.summary.merge_all('summaries')
-    train_summary = tf.summary.merge_all('train')
-    test_summary = tf.summary.merge_all('test')
+    merged_summary_op = tf.summary.merge_all('summaries')
+    train_summary_op = tf.summary.merge_all('train')
+    test_summary_op = tf.summary.merge_all('test')
 
     # q = sess.run(m.binary_encoded)
     # print(q[0])
 
     # extract PCA features from training set
-    train_pcanet_features, train_labels, summary = sess.run([m.output_features, test_label_batch, merged_summary])
-    writer.add_summary(summary, 0)
+    train_pcanet_features, train_labels, summary = sess.run([m.output_features, test_label_batch, merged_summary_op])
+    # writer.add_summary(summary, 0)
 
     # train linear SVM
     svm = LinearSVC(C=1, fit_intercept=False)
@@ -211,24 +211,24 @@ def main():
     train_score = svm.score(train_pcanet_features, train_labels)
 
     print("training score:", train_score)
-    summary = sess.run(train_summary, feed_dict={train_score_tensor: train_score})
-    writer.add_summary(summary, 0)
+    train_summary = sess.run(train_summary_op, feed_dict={train_score_tensor: train_score})
+    writer.add_summary(train_summary, 0)
 
     # switch to test set, compute PCA filters, and score with learned SVM parameters
     scores = []
     test_labels = sess.run(test_label_batch)
     m.image_batch = test_image_batch
     for i in range(4):
-        test_pcanet_features, summary = sess.run([m.output_features, merged_summary])
-        writer.add_summary(summary, i)
+        test_pcanet_features, merged_summary = sess.run([m.output_features, merged_summary_op])
+        writer.add_summary(merged_summary, i + 1)
 
         score = svm.score(test_pcanet_features, test_labels)
         # score = svm.score(train_pcanet_features, train_labels)
         scores.append(score)
 
         print("batch test score:", score)
-        summary = sess.run(test_summary, feed_dict={test_score_tensor: score})
-        writer.add_summary(summary, i)
+        test_summary = sess.run(test_summary_op, feed_dict={test_score_tensor: score})
+        writer.add_summary(test_summary, i + 1)
 
     print("Final score on test set: ", sum(scores) / len(scores))
     writer.close()
