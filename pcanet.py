@@ -186,7 +186,6 @@ def main():
 
     # define the model
     m = PCANet(train_image_batch, hyperparams, info)
-    # m.set_input_tensor(train_image_batch)
 
     # define placeholders for putting scores on Tensorboard
     train_score_tensor = tf.placeholder(tf.float32, shape=[], name='train_score')
@@ -204,7 +203,6 @@ def main():
     # extract PCA features from training set
     train_pcanet_features, train_labels, summary = sess.run([m.output_features, train_label_batch, merged_summary_op])
     writer.add_summary(summary, 0)
-    print(train_labels[:10])
 
     # train linear SVM
     svm = LinearSVC(C=1, fit_intercept=False)
@@ -217,15 +215,13 @@ def main():
 
     # switch to test set, compute PCA filters, and score with learned SVM parameters
     scores = []
-    m.set_input_tensor(test_image_batch)
+    m = PCANet(test_image_batch, hyperparams, info)
     for i in range(4):
         test_pcanet_features, test_labels, merged_summary = sess.run([m.output_features, test_label_batch, merged_summary_op])
         writer.add_summary(merged_summary, i + 1)
 
         score = svm.score(test_pcanet_features, test_labels)
         scores.append(score)
-
-        print(test_labels[:10], sess.run(train_label_batch)[:10])
 
         print("batch test score:", score)
         test_summary = sess.run(test_summary_op, feed_dict={test_score_tensor: score})
