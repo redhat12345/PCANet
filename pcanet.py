@@ -183,7 +183,7 @@ def main():
 
     # define the model
     m = PCANet(train_image_batch, hyperparams, info)
-    m.image_batch = train_image_batch
+    m.image_batch = test_image_batch
 
     # define placeholders for putting scores on Tensorboard
     train_score_tensor = tf.placeholder(tf.float32, shape=[], name='train_score')
@@ -202,7 +202,7 @@ def main():
     # print(q[0])
 
     # extract PCA features from training set
-    train_pcanet_features, train_labels, summary = sess.run([m.output_features, train_label_batch, merged_summary])
+    train_pcanet_features, train_labels, summary = sess.run([m.output_features, test_label_batch, merged_summary])
     writer.add_summary(summary, 0)
 
     # train linear SVM
