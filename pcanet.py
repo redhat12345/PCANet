@@ -18,7 +18,7 @@ from dataset_utils import load
 class PCANet:
     def __init__(self, init_image_batch, hyperparams, info):
         self._image_batch = init_image_batch
-        tf.summary.image('input', self._image_batch, max_outputs=10)
+        tf.summary.image('input', self._image_batch, max_outputs=5)
 
         k1 = hyperparams['k1']
         k2 = hyperparams['k2']
@@ -139,6 +139,8 @@ def main():
     # setup the input data pipelines
     train_image_batch, train_label_batch, test_image_batch, test_label_batch, info = load('mnist')
     # train_image_batch, train_label_batch, test_image_batch, test_label_batch, info = load('cifar10')
+    tf.summary.image("train_image", train_image_batch, max_outputs=5)
+    tf.summary.image("test_image", test_image_batch, max_outputs=5)
 
     sess = tf.Session()
 
