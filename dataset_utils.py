@@ -52,7 +52,7 @@ def load(name):
 
     info = datasets[name]
 
-    batch_size = 100
+    batch_size = 50
 
     with tf.name_scope('input'):
         filename_queue = tf.train.string_input_producer([info.TRAIN_RECORD_PATH], name='train_queue')
@@ -60,7 +60,6 @@ def load(name):
 
         train_image_batch, train_label_batch = tf.train.batch([image, label],
                                                                       batch_size=batch_size,
-                                                                      num_threads=2,
                                                                       capacity=1000 + 3 * batch_size,
                                                                       # seed=0,
                                                                       # min_after_dequeue=1000
@@ -68,12 +67,12 @@ def load(name):
         filename_queue = tf.train.string_input_producer([info.TEST_RECORD_PATH], name='test_queue')
         image, label = read_and_decode(filename_queue, info)
 
-        test_image_batch, test_label_batch = tf.train.shuffle_batch([image, label],
+        test_image_batch, test_label_batch = tf.train.batch([image, label],
                                                                     batch_size=batch_size,
-                                                                    num_threads=2,
                                                                     capacity=1000 + 3 * batch_size,
-                                                                    seed=0,
-                                                                    min_after_dequeue=1000 )
+                                                                    # seed=0,
+                                                                    # min_after_dequeue=1000
+                                                                    )
 
     info.batch_size = batch_size
     return train_image_batch, train_label_batch, test_image_batch, test_label_batch, info

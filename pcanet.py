@@ -225,7 +225,7 @@ def main():
         score = svm.score(test_pcanet_features, test_labels)
         scores.append(score)
 
-        print(test_labels[:10])
+        print(test_labels[:10], sess.run(train_label_batch)[:10])
 
         print("batch test score:", score)
         test_summary = sess.run(test_summary_op, feed_dict={test_score_tensor: score})
