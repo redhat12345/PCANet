@@ -16,7 +16,7 @@ from dataset_utils import load
 
 
 class PCANet:
-    def __init__(self,init_image_batch, hyperparams, info):
+    def __init__(self, init_image_batch, hyperparams, info):
         self._image_batch = init_image_batch
         tf.summary.image('input', self._image_batch, max_outputs=10)
 
@@ -32,7 +32,8 @@ class PCANet:
         num_blocks = hyperparams['num_blocks']
 
         with tf.name_scope("extract_patches1"):
-            self.patches1 = tf.extract_image_patches(self._image_batch, [1, k1, k2, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding='SAME', name='patches')
+            self.patches1 = tf.extract_image_patches(self._image_batch, [1, k1, k2, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding='SAME',
+                                                     name='patches')
             self.patches1 = tf.reshape(self.patches1, [-1, k1 * k2, info.N_CHANNELS], name='patches_shaped')
             # TODO: figure out how to unvectorize for multi-channel images
             # self.patches1 = tf.reshape(self.patches1, [-1, info.N_CHANNELS,  k1 * k2], name='patches_shaped')
@@ -114,10 +115,9 @@ class PCANet:
         self._image_batch = image_batch
 
 
-
 def main():
     day_str = "{:%B_%d}".format(datetime.now())
-    time_str = "{:%H:%M:%S}".format(datetime.now())
+    time_str = "{:%H_%MN%S}".format(datetime.now())
     day_dir = "log_data/" + day_str + "/"
     log_path = day_dir + day_str + "_" + time_str + "/"
     writer = tf.summary.FileWriter(log_path)
