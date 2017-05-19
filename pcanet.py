@@ -159,6 +159,8 @@ def main():
     w_steps = range(block_w, info.IMAGE_W + 1, stride_w)
     h_steps = range(block_h, info.IMAGE_H + 1, stride_h)
     num_blocks = len(h_steps) * len(w_steps)
+    print(list(w_steps))
+    print(list(h_steps))
 
     hyperparams = {
         'l1': l1,
@@ -205,7 +207,7 @@ def main():
     writer.add_summary(summary, 0)
 
     # train linear SVM
-    svm = LinearSVC(C=1e-7, fit_intercept=False)
+    svm = LinearSVC(C=1.0, fit_intercept=True)
     svm.fit(train_pcanet_features, train_labels)
     train_score = svm.score(train_pcanet_features, train_labels)
 
