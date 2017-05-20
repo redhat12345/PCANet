@@ -90,20 +90,27 @@ class PCANet:
             self.binary_quantize = tf.cast(self.conv2 > 0, tf.float32)
             self.powers_of_two = tf.constant([2 ** n for n in range(0, l2)], dtype=tf.float32)
             self.binary_encoded = tf.reduce_sum(tf.transpose(self.binary_quantize, [0, 2, 3, 4, 1]) * self.powers_of_two, axis=4)
+            # binary_encoded is (l1, batch_size, img_w, img_h)
 
             self.binary_quantize_viz = tf.reshape(tf.expand_dims(self.binary_quantize, axis=4), [-1, info.IMAGE_W, info.IMAGE_H, 1])
             self.binary_encoded_viz = tf.expand_dims(self.binary_encoded[:, 1, :, :], axis=3)
             tf.summary.image('quantized', self.binary_quantize_viz, max_outputs=10)
 
         with tf.name_scope("histograms"):
-            self.n_bins = k = pow(2, l2)
-            self.bins = np.linspace(-0.5, k - 0.5, self.n_bins)
             self.binary_flat = tf.expand_dims(tf.reshape(self.binary_encoded, [-1, info.IMAGE_W, info.IMAGE_H]), axis=3)
             self.blocks = tf.extract_image_patches(self.binary_flat, [1, block_w, block_h, 1], [1, stride_w, stride_h, 1], [1, 1, 1, 1], padding='VALID')
+            # blocks is (l1*batch_size, len(w_steps), len(h_steps), block_w * block_h), ordered by l1
+            # so the first batch_size are from the first filter in l1
+            # values in blocks are in the range [0, 2^l2 - 1)
             self.blocks_flat = tf.reshape(self.blocks, [-1, block_w * block_h])
             self.blocks_flat_T = tf.transpose(self.blocks_flat, [1, 0])
             total_number_of_histograms = info.batch_size * l1 * num_blocks
-            self.segment_ids = self.blocks_flat_T + [num_hist_bins * i for i in range(total_number_of_histograms)]
+
+            # in order to histogram all the blocks in each image for each l1 filter
+            # we construct a matrix of segment ids, then sum all elements in blocks with the same segment id
+            # the offsets makes sure all values are unique across each image and l1 filter
+            self.offsets = [block_w * block_h * i for i in range(total_number_of_histograms)]
+            self.segment_ids = self.blocks_flat_T + self.offsets
             self.segment_ids = tf.cast(tf.transpose(self.segment_ids, [1, 0]), tf.int32)
             number_of_segments = total_number_of_histograms * num_hist_bins
             self.histograms = tf.unsorted_segment_sum(tf.ones_like(self.blocks_flat), self.segment_ids, number_of_segments)
@@ -159,8 +166,6 @@ def main():
     w_steps = range(block_w, info.IMAGE_W + 1, stride_w)
     h_steps = range(block_h, info.IMAGE_H + 1, stride_h)
     num_blocks = len(h_steps) * len(w_steps)
-    print(list(w_steps))
-    print(list(h_steps))
 
     hyperparams = {
         'l1': l1,
@@ -205,9 +210,10 @@ def main():
     # extract PCA features from training set
     train_pcanet_features, train_labels, summary = sess.run([m.output_features, train_label_batch, merged_summary_op])
     writer.add_summary(summary, 0)
+    exit(0)
 
     # train linear SVM
-    svm = LinearSVC(C=1.0, fit_intercept=True)
+    svm = LinearSVC(C=1.0, fit_intercept=False)
     svm.fit(train_pcanet_features, train_labels)
     train_score = svm.score(train_pcanet_features, train_labels)
 
