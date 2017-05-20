@@ -128,8 +128,6 @@ def main():
     day_dir = "log_data/" + day_str + "/"
     log_path = day_dir + day_str + "_" + time_str + "/"
     writer = tf.summary.FileWriter(log_path)
-    if not os.path.exists(day_dir) and '--no-log' not in sys.argv:
-        os.mkdir(day_dir)
 
     # Open text editor to write description of the run and commit it
     if '--temp' not in sys.argv:
@@ -210,7 +208,6 @@ def main():
     # extract PCA features from training set
     train_pcanet_features, train_labels, summary = sess.run([m.output_features, train_label_batch, merged_summary_op])
     writer.add_summary(summary, 0)
-    exit(0)
 
     # train linear SVM
     svm = LinearSVC(C=1.0, fit_intercept=False)
