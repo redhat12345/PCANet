@@ -1,19 +1,4 @@
-#!/usr/bin/python3.5
-
-# This code attempts to replicate some of these results:
-# https://arxiv.org/pdf/1404.3606.pdf
-
-import os
-import sys
-from datetime import datetime
-from sklearn.svm import LinearSVC
-from subprocess import call
-
-import numpy as np
 import tensorflow as tf
-
-from dataset_utils import load
-
 
 class PCANet:
     def __init__(self, init_image_batch, hyperparams, info):
@@ -32,8 +17,7 @@ class PCANet:
         num_blocks = hyperparams['num_blocks']
 
         with tf.name_scope("extract_patches1"):
-            self.patches1 = tf.extract_image_patches(self._image_batch, [1, k1, k2, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding='SAME',
-                                                     name='patches')
+            self.patches1 = tf.extract_image_patches(self._image_batch, [1, k1, k2, 1], [1, 1, 1, 1], [1, 1, 1, 1], padding='SAME', name='patches')
             self.patches1 = tf.reshape(self.patches1, [-1, k1 * k2, info.N_CHANNELS], name='patches_shaped')
             # TODO: figure out how to unvectorize for multi-channel images
             # self.patches1 = tf.reshape(self.patches1, [-1, info.N_CHANNELS,  k1 * k2], name='patches_shaped')
@@ -52,7 +36,7 @@ class PCANet:
             tf.summary.image('filt1', self.filt1_viz, max_outputs=l1)
 
         with tf.name_scope("convolution1"):
-            self.conv1 = tf.nn.conv2d(self._image_batch, self.top_x_eig1, strides=[1, 1, 1, 1], padding='SAME')
+            self.conv1 = tf.nn.conv2d(self._image_batch, self.top_x_eig1, [1, 1, 1, 1], padding='SAME')
             self.conv1 = tf.transpose(self.conv1, [3, 0, 1, 2])
             # conv1 is now (l1, batch_size, img_w, img_h)
             self.conv1_batch = tf.expand_dims(tf.reshape(self.conv1, [-1, info.IMAGE_W, info.IMAGE_H]), axis=3)
@@ -61,7 +45,7 @@ class PCANet:
             tf.summary.image('conv1', self.conv1_batch, max_outputs=l1)
 
         with tf.name_scope("extract_patches2"):
-            self.patches2 = tf.extract_image_patches(self.conv1_batch, [1, k1, k2, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding='SAME', name='patches')
+            self.patches2 = tf.extract_image_patches(self.conv1_batch, [1, k1, k2, 1], [1, 1, 1, 1], [1, 1, 1, 1], padding='SAME', name='patches')
             self.patches2 = tf.expand_dims(tf.reshape(self.patches2, [-1, k1 * k2], name='patches_shaped'), axis=2)
             self.zero_mean_patches2 = self.patches2 - tf.reduce_mean(self.patches2, axis=1, keep_dims=True, name='patch_means')
             x2 = tf.transpose(self.zero_mean_patches2, [2, 1, 0])
@@ -78,7 +62,7 @@ class PCANet:
             tf.summary.image('filt2', self.filt2_viz, max_outputs=l2)
 
         with tf.name_scope("convolution2"):
-            self.conv2 = tf.nn.conv2d(self.conv1_batch, self.top_x_eig2, strides=[1, 1, 1, 1], padding='SAME')
+            self.conv2 = tf.nn.conv2d(self.conv1_batch, self.top_x_eig2, [1, 1, 1, 1], padding='SAME')
             self.conv2 = tf.reshape(self.conv2, [l1, -1, info.IMAGE_W, info.IMAGE_H, l2])
             self.conv2 = tf.transpose(self.conv2, [0, 4, 1, 2, 3])
             # conv2 is now (l1, l2, batch_size, img_w, img_h)
@@ -98,20 +82,20 @@ class PCANet:
 
         with tf.name_scope("histograms"):
             self.binary_flat = tf.expand_dims(tf.reshape(self.binary_encoded, [-1, info.IMAGE_W, info.IMAGE_H]), axis=3)
-            self.blocks = tf.extract_image_patches(self.binary_flat, [1, block_w, block_h, 1], [1, stride_w, stride_h, 1], [1, 1, 1, 1], padding='VALID')
+            self.blocks = tf.extract_image_patches(self.binary_flat, [1, block_w, block_h, 1], [1, stride_w, stride_h, 1], [1, 1, 1, 1], padding='VALID', name='blocks')
             # blocks is (l1*batch_size, len(w_steps), len(h_steps), block_w * block_h), ordered by l1
             # so the first batch_size are from the first filter in l1
             # values in blocks are in the range [0, 2^l2 - 1)
-            self.blocks_flat = tf.reshape(self.blocks, [-1, block_w * block_h])
-            self.blocks_flat_T = tf.transpose(self.blocks_flat, [1, 0])
+            self.blocks_flat = tf.reshape(self.blocks, [-1, block_w * block_h], name='blocks_flat')
+            self.blocks_flat_T = tf.cast(tf.transpose(self.blocks_flat, [1, 0]), tf.int32, name='blocks_flat_T')
             total_number_of_histograms = info.batch_size * l1 * num_blocks
 
             # in order to histogram all the blocks in each image for each l1 filter
             # we construct a matrix of segment ids, then sum all elements in blocks with the same segment id
             # the offsets makes sure all values are unique across each image and l1 filter
-            self.offsets = [num_hist_bins * i for i in range(total_number_of_histograms)]
-            self.segment_ids = self.blocks_flat_T + self.offsets
-            self.segment_ids = tf.cast(tf.transpose(self.segment_ids, [1, 0]), tf.int32)
+            self.offsets = tf.convert_to_tensor([num_hist_bins * i for i in range(total_number_of_histograms)], dtype=tf.int32, name='offsets')
+            self.segment_ids = tf.add(self.blocks_flat_T, self.offsets, name="add")
+            self.segment_ids = tf.transpose(self.segment_ids, [1, 0])
             number_of_segments = total_number_of_histograms * num_hist_bins
             self.histograms = tf.unsorted_segment_sum(tf.ones_like(self.blocks_flat), self.segment_ids, number_of_segments)
             self.histograms = tf.reshape(self.histograms, [l1, -1, num_blocks * num_hist_bins])
@@ -122,120 +106,3 @@ class PCANet:
         self._image_batch = image_batch
 
 
-def main():
-    day_str = "{:%B_%d}".format(datetime.now())
-    time_str = "{:%H_%M_%S}".format(datetime.now())
-    day_dir = "log_data/" + day_str + "/"
-    log_path = day_dir + day_str + "_" + time_str + "/"
-    writer = tf.summary.FileWriter(log_path)
-
-    # Open text editor to write description of the run and commit it
-    if '--temp' not in sys.argv:
-        if '-m' in sys.argv:
-            m_i = sys.argv.index('-m')
-            msg = sys.argv[m_i + 1]
-            cmd = ['git', 'commit', '*.py', '-m', msg]
-        else:
-            cmd = ['git', 'commit', '*.py']
-
-        os.environ['TF_LOG_DIR'] = log_path
-        call(cmd)
-
-    # setup the input data pipelines
-    train_image_batch, train_label_batch, test_image_batch, test_label_batch, info = load('mnist')
-    # train_image_batch, train_label_batch, test_image_batch, test_label_batch, info = load('cifar10')
-
-    sess = tf.Session()
-
-    tf.train.start_queue_runners(sess=sess)
-    init = tf.global_variables_initializer()
-
-    # Hyper-params
-    k1 = 7
-    k2 = 7
-    l1 = 8
-    l2 = 8
-    block_w = 4
-    block_h = 4
-    block_overlap = 0
-    num_hist_bins = 2 ** l2
-    stride_w = max(int((1 - block_overlap) * block_w), 1)
-    stride_h = max(int((1 - block_overlap) * block_h), 1)
-    w_steps = range(block_w, info.IMAGE_W + 1, stride_w)
-    h_steps = range(block_h, info.IMAGE_H + 1, stride_h)
-    print(list(w_steps))
-    num_blocks = len(h_steps) * len(w_steps)
-
-    hyperparams = {
-        'l1': l1,
-        'l2': l2,
-        'k1': k1,
-        'k2': k2,
-        'num_hist_bins': num_hist_bins,
-        'block_w': block_w,
-        'block_h': block_h,
-        'stride_w': stride_w,
-        'stride_h': stride_h,
-        'num_blocks': num_blocks,
-    }
-
-    # check that the blocks in the final step to be even & cover all pixels
-    if w_steps[-1] != info.IMAGE_W:
-        print("invalid block_overlap or block width for given image width:")
-        print("W: %i, Block W: %i, Overlap: %0.2f" % (info.IMAGE_W, block_w, block_overlap))
-        exit(0)
-
-    if h_steps[-1] != info.IMAGE_H:
-        print("invalid block_overlap or block height for given image height")
-        print("H: %i, Block H: %i, Overlap: %0.2f" % (info.IMAGE_H, block_h, block_overlap))
-        exit(0)
-
-    # define the model
-    m = PCANet(train_image_batch, hyperparams, info)
-
-    # define placeholders for putting scores on Tensorboard
-    train_score_tensor = tf.placeholder(tf.float32, shape=[], name='train_score')
-    test_score_tensor = tf.placeholder(tf.float32, shape=[], name='test_score')
-    tf.summary.scalar("train_score", train_score_tensor, collections=['train'])
-    tf.summary.scalar("test_score", test_score_tensor, collections=['test'])
-
-    # run it
-    sess.run(init)
-    writer.add_graph(sess.graph)
-    merged_summary_op = tf.summary.merge_all('summaries')
-    train_summary_op = tf.summary.merge_all('train')
-    test_summary_op = tf.summary.merge_all('test')
-
-    # extract PCA features from training set
-    train_pcanet_features, train_labels, summary = sess.run([m.output_features, train_label_batch, merged_summary_op])
-    writer.add_summary(summary, 0)
-
-    # train linear SVM
-    svm = LinearSVC(C=1.0, fit_intercept=False)
-    svm.fit(train_pcanet_features, train_labels)
-    train_score = svm.score(train_pcanet_features, train_labels)
-
-    print("training score:", train_score)
-    train_summary = sess.run(train_summary_op, feed_dict={train_score_tensor: train_score})
-    writer.add_summary(train_summary, 0)
-
-    # switch to test set, compute PCA filters, and score with learned SVM parameters
-    scores = []
-    m = PCANet(test_image_batch, hyperparams, info)
-    for i in range(4):
-        test_pcanet_features, test_labels, merged_summary = sess.run([m.output_features, test_label_batch, merged_summary_op])
-        writer.add_summary(merged_summary, i + 1)
-
-        score = svm.score(test_pcanet_features, test_labels)
-        scores.append(score)
-
-        print("batch test score:", score)
-        test_summary = sess.run(test_summary_op, feed_dict={test_score_tensor: score})
-        writer.add_summary(test_summary, i + 1)
-
-    print("Final score on test set: ", sum(scores) / len(scores))
-    writer.close()
-
-
-if __name__ == '__main__':
-    main()
