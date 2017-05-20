@@ -163,6 +163,7 @@ def main():
     stride_h = max(int((1 - block_overlap) * block_h), 1)
     w_steps = range(block_w, info.IMAGE_W + 1, stride_w)
     h_steps = range(block_h, info.IMAGE_H + 1, stride_h)
+    print(w_steps, h_steps)
     num_blocks = len(h_steps) * len(w_steps)
 
     hyperparams = {
