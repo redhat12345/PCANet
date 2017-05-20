@@ -109,7 +109,7 @@ class PCANet:
             # in order to histogram all the blocks in each image for each l1 filter
             # we construct a matrix of segment ids, then sum all elements in blocks with the same segment id
             # the offsets makes sure all values are unique across each image and l1 filter
-            self.offsets = [block_w * block_h * i for i in range(total_number_of_histograms)]
+            self.offsets = [num_hist_bins * i for i in range(total_number_of_histograms)]
             self.segment_ids = self.blocks_flat_T + self.offsets
             self.segment_ids = tf.cast(tf.transpose(self.segment_ids, [1, 0]), tf.int32)
             number_of_segments = total_number_of_histograms * num_hist_bins
@@ -124,7 +124,7 @@ class PCANet:
 
 def main():
     day_str = "{:%B_%d}".format(datetime.now())
-    time_str = "{:%H_%MN%S}".format(datetime.now())
+    time_str = "{:%H_%M_%S}".format(datetime.now())
     day_dir = "log_data/" + day_str + "/"
     log_path = day_dir + day_str + "_" + time_str + "/"
     writer = tf.summary.FileWriter(log_path)
