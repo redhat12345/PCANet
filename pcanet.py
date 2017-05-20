@@ -155,15 +155,15 @@ def main():
     k2 = 7
     l1 = 8
     l2 = 8
-    block_w = 8
-    block_h = 8
+    block_w = 4
+    block_h = 4
     block_overlap = 0
     num_hist_bins = 2 ** l2
     stride_w = max(int((1 - block_overlap) * block_w), 1)
     stride_h = max(int((1 - block_overlap) * block_h), 1)
     w_steps = range(block_w, info.IMAGE_W + 1, stride_w)
     h_steps = range(block_h, info.IMAGE_H + 1, stride_h)
-    print(w_steps, h_steps)
+    print(list(w_steps))
     num_blocks = len(h_steps) * len(w_steps)
 
     hyperparams = {
