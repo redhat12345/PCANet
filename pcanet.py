@@ -155,9 +155,9 @@ def main():
     k2 = 7
     l1 = 8
     l2 = 8
-    block_w = 7
-    block_h = 7
-    block_overlap = 0.5
+    block_w = 8
+    block_h = 8
+    block_overlap = 0
     num_hist_bins = 2 ** l2
     stride_w = max(int((1 - block_overlap) * block_w), 1)
     stride_h = max(int((1 - block_overlap) * block_h), 1)
